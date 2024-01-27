@@ -15,8 +15,9 @@ namespace Blueprints
         
         private static Vector3 copyRegionStart;
         private static Vector3 copyRegionEnd;
+        private static Vector3Int copyRegionAnchor;
         private static Bounds copyRegionBounds;
-        private static GameObject copyRegionDisplayBox = new GameObject();
+        private static GameObject copyRegionDisplayBox;
 
         // Public Functions
 
@@ -24,8 +25,11 @@ namespace Blueprints
             Vector3? startPosResult = BlueprintsPlugin.getLookedAtMachinePos();
             if (startPosResult == null) return;
             copyRegionStart = (Vector3)startPosResult;
+            if (copyRegionStart.y % 1 == 0.5) copyRegionStart.y -= 0.49f;
+            //copyRegionStart = BlueprintsPlugin.getMinPosOfAimedMachine();
+            //copyRegionStart.y += 0.01f;
             copyRegionBounds = new Bounds(copyRegionStart, Vector3.zero);
-
+            copyRegionAnchor = BlueprintsPlugin.getMinPosOfAimedMachine();
             isCopying = true;
 
             Debug.Log($"Started copying: {copyRegionStart}");
@@ -44,6 +48,7 @@ namespace Blueprints
 
             Vector3 currentEndPos = (Vector3)currentEndPosResult;
             Vector3 size = currentEndPos - copyRegionStart;
+
             copyRegionBounds = new Bounds(copyRegionStart, Vector3.zero);
             copyRegionBounds.Encapsulate(copyRegionStart + size);
 
@@ -64,16 +69,34 @@ namespace Blueprints
             Vector3 size = copyRegionEnd - copyRegionStart;
             copyRegionBounds.Encapsulate(copyRegionStart + size);
 
+            size.x = size.x >= 0 ? copyRegionBounds.size.x : -copyRegionBounds.size.x;
+            size.y = copyRegionBounds.size.y;
+            size.z = size.z >= 0 ? copyRegionBounds.size.z : -copyRegionBounds.size.z;
+
+            Debug.Log($"Copy Region Start: {copyRegionStart}");
+            Debug.Log($"Copy Region End: {copyRegionEnd}");
+            Debug.Log($"Size: {size}");
+            Debug.Log($"Bounds.size: {copyRegionBounds.size}");
+
             copyRegionDisplayBox.SetActive(false);
 
             HashSet<IMachineInstanceRef> machines = getMachinesToCopy();
             Blueprint blueprint = new Blueprint() {
                 name = "test",
                 machines = machines.ToList(),
+                genericMachineInstanceRefs = getMachineRefsInBounds().ToList()
             };
+            blueprint.setSize(size);
+
+            //Vector3Int blueprintAnchorPoint = new Vector3Int() {
+            //    x = (int)(copyRegionStart.x >= 0 ? Math.Floor(copyRegionStart.x) : Math.Ceiling(copyRegionStart.x)),
+            //    y = (int)(copyRegionStart.y >= 0 ? Math.Floor(copyRegionStart.y) : Math.Ceiling(copyRegionStart.y)),
+            //    z = (int)(copyRegionStart.z >= 0 ? Math.Floor(copyRegionStart.z) : Math.Ceiling(copyRegionStart.z)),
+            //};
 
             foreach(IMachineInstanceRef machine in machines) {
-                blueprint.machineRelativePositions.Add(machine.GetGridInfo().Center - copyRegionStart);
+                blueprint.machineRelativePositions.Add(machine.GetGridInfo().minPos - copyRegionAnchor);
+                //Debug.Log($"minPos({machine.GetGridInfo().minPos}) - anchor({copyRegionAnchor}) = offset({machine.GetGridInfo().minPos - copyRegionAnchor})");
             }
 
             BlueprintsPlugin.clipboard = blueprint;

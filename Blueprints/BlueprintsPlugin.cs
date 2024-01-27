@@ -24,20 +24,29 @@ namespace Blueprints
 
         public static string copyShortcutKey = "Copy Shortcut";
         public static string pasteShortcutKey = "Paste Shortcut";
+        public static string cwRotateKey = "CW Rotation Shortcut";
+        public static string ccwRotateKey = "CCW Rotation Shortcut";
+        public static string blueprintsKey = "Open Blueprints Shortcut";
 
         public static ConfigEntry<KeyboardShortcut> copyShortcut;
         public static ConfigEntry<KeyboardShortcut> pasteShortcut;
+        public static ConfigEntry<KeyboardShortcut> cwRotateShortcut;
+        public static ConfigEntry<KeyboardShortcut> ccwRotateShortcut;
+        public static ConfigEntry<KeyboardShortcut> blueprintsShortcut;
 
         public static LayerMask? buildablesMask = null;
         public static Blueprint clipboard = null;
+        public const bool debugMode = false;
 
         private void Awake() {
-            
             Logger.LogInfo($"PluginName: {PluginName}, VersionString: {VersionString} is loading...");
             Harmony.PatchAll();
 
             copyShortcut = Config.Bind("General", copyShortcutKey, new KeyboardShortcut(KeyCode.C, KeyCode.LeftControl));
             pasteShortcut = Config.Bind("General", pasteShortcutKey, new KeyboardShortcut(KeyCode.V, KeyCode.LeftControl));
+            cwRotateShortcut = Config.Bind("General", cwRotateKey, new KeyboardShortcut(KeyCode.Z));
+            ccwRotateShortcut = Config.Bind("General", ccwRotateKey, new KeyboardShortcut(KeyCode.Z, KeyCode.LeftControl));
+            blueprintsShortcut = Config.Bind("General", blueprintsKey, new KeyboardShortcut(KeyCode.C));
 
             Harmony.CreateAndPatchAll(typeof(PlayerInspectorPatch));
 
@@ -56,12 +65,20 @@ namespace Blueprints
             }
 
             if (pasteShortcut.Value.IsDown()) {
-                pasteClipboard();
+                if (!MachinePaster.isPasting) {
+                    MachinePaster.startPasting();
+                }
+                else {
+                    MachinePaster.endPasting();
+                }
             }
 
-            if (MachineCopier.isCopying) {
-                MachineCopier.updateEndPosition();
+            if (blueprintsShortcut.Value.IsDown() && !UI.isOpen) {
+                UI.show();
             }
+
+            if (MachineCopier.isCopying) MachineCopier.updateEndPosition();
+            if (MachinePaster.isPasting) MachinePaster.updateDisplayBox();
         }
 
         // Public Functions
@@ -96,91 +113,25 @@ namespace Blueprints
             return null;
         }
 
-        // Private Functions
+        public static Vector3Int getRoundedAimLocation() {
+            Vector3 placement = Player.instance.builder.CurrentAimTarget;
+            return new Vector3Int() {
+                x = (int)(placement.x >= 0 ? Math.Floor(placement.x) : Math.Ceiling(placement.x)),
+                y = (int)(placement.y >= 0 ? Math.Floor(placement.y) : Math.Ceiling(placement.y)),
+                z = (int)(placement.z >= 0 ? Math.Floor(placement.z) : Math.Ceiling(placement.z)),
+            };
+        }
 
-        private void pasteClipboard() {
-            if(clipboard == null) {
-                Debug.Log("Can't paste null clipboard");
-                return;
-            }
+        public static Vector3Int getMinPosOfAimedMachine() {
+            FieldInfo targetMachineInfo = typeof(PlayerInteraction).GetField("targetMachineRef", BindingFlags.Instance | BindingFlags.NonPublic);
+            GenericMachineInstanceRef machine = (GenericMachineInstanceRef)targetMachineInfo.GetValue(Player.instance.interaction);
+            return machine.GetGridInfo().minPos;
+        }
 
-            foreach(MachineCost cost in clipboard.getCost()) {
-                ResourceInfo info = SaveState.GetResInfoFromId(cost.resId);
-                if(!Player.instance.inventory.myInv.HasResources(info, cost.count)) {
-                    Debug.Log($"Not enough {info.displayName} {Player.instance.inventory.myInv.GetResourceCount(cost.resId)}/{cost.count}");
-                    return;
-                }
-            }
-
-            foreach (MachineCost cost in clipboard.getCost()) {
-                Player.instance.inventory.myInv.TryRemoveResources(cost.resId, cost.count);
-            }
-
-            Vector3? placementResult = getAboveLookedAtMachinePos();
-            if(placementResult == null) {
-                Debug.Log("Can't paste on non-machine");
-                return;
-            }
-
-            Vector3 placement = (Vector3)placementResult;
-            Debug.Log($"Pasting clipboard at {placement}");
-
-            for(int i = 0; i < clipboard.machines.Count; i++) {
-                IMachineInstanceRef machine = clipboard.machines[i];
-
-                Vector3Int newMinPos = new Vector3Int();
-                if(placement.x >= 0) {
-                    newMinPos.x = (int)Math.Ceiling(placement.x + clipboard.machineRelativePositions[i].x);
-                }
-                else {
-                    newMinPos.x = (int)Math.Floor(placement.x + clipboard.machineRelativePositions[i].x);
-                }
-                if (placement.y >= 0) {
-                    newMinPos.y = (int)Math.Ceiling(placement.y + clipboard.machineRelativePositions[i].y);
-                }
-                else {
-                    newMinPos.y = (int)Math.Floor(placement.y + clipboard.machineRelativePositions[i].y);
-                }
-                if (placement.z >= 0) {
-                    newMinPos.z = (int)Math.Ceiling(placement.z + clipboard.machineRelativePositions[i].z);
-                }
-                else {
-                    newMinPos.z = (int)Math.Floor(placement.z + clipboard.machineRelativePositions[i].z);
-                }
-
-                GridInfo newGridInfo = new GridInfo();
-                newGridInfo.CopyFrom(machine.gridInfo);
-
-                if (machine.typeIndex != MachineTypeEnum.Conveyor) {
-                    SimpleBuildInfo info = new SimpleBuildInfo() {
-                        machineType = machine.GetCommonInfo().resId,
-                        rotation = machine.GetGridInfo().YawRotation,
-                        minGridPos = newMinPos,
-
-                    };
-                    info.tick += 5;
-                    SimpleBuildAction action = new SimpleBuildAction() {
-                        info = (SimpleBuildInfo)info.Clone(),
-                        resourceCostAmount = 1,
-                        resourceCostID = (int)machine.typeIndex,
-                    };
-
-                    newGridInfo.minPos = newMinPos;
-                    if (!GridManager.instance.CheckBuildableIncludingVoxelsAt(newGridInfo)) {
-                        Debug.Log($"Can't build at {placement} | {newMinPos}");
-                        return;
-                    }
-                    else {
-                        Debug.Log($"Building at {newMinPos}");
-                    }
-
-                    NetworkMessageRelay.instance.SendNetworkAction(action);
-                    Debug.Log($"Sent network message relay");
-                }
-                else {
-
-                }
-            }
+        public static Vector3Int getAboveMinPosOfAimedMachine() {
+            Vector3Int pos = getMinPosOfAimedMachine();
+            ++pos.y;
+            return pos;
         }
     }
 }
