@@ -1,7 +1,10 @@
 ﻿using FluffyUnderware.Curvy.Generator.Modules;
+using Newtonsoft.Json;
+using ProceduralNoiseProject;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.SymbolStore;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -14,33 +17,24 @@ namespace Blueprints
     {
         // Objects & Variables
         public static bool isPasting = false;
-        private static Vector3 pasteRegionStart;
-        private static Vector3 pasteRegionEnd;
         private static GameObject pasteRegionDisplayBox;
 
         // Public Functions
 
         public static void startPasting() {
+            BlueprintsPlugin.loadFileToClipboard();
             if (BlueprintsPlugin.clipboard == null) {
                 Debug.Log("Can't paste null clipboard");
                 return;
             }
 
-            if (!BlueprintsPlugin.debugMode) {
-                foreach (MachineCost cost in BlueprintsPlugin.clipboard.getCost()) {
-                    ResourceInfo info = SaveState.GetResInfoFromId(cost.resId);
-                    if (!Player.instance.inventory.myInv.HasResources(info, cost.count)) {
-                        Debug.Log($"Not enough {info.displayName} {Player.instance.inventory.myInv.GetResourceCount(cost.resId)}/{cost.count}");
-                        return;
-                    }
-                }
-
-                foreach (MachineCost cost in BlueprintsPlugin.clipboard.getCost()) {
-                    Player.instance.inventory.myInv.TryRemoveResources(cost.resId, cost.count);
-                }
+            if (!checkInventory()) {
+                BlueprintsPlugin.Notify("Not enough resources");
+                return;
             }
 
-            pasteRegionStart = Player.instance.builder.CurrentAimTarget;
+            Debug.Log($"Pasting {BlueprintsPlugin.clipboard.machineIDs.Count} machines");
+
             isPasting = true;
 
             FieldInfo takeResourcesBoxInfo = Player.instance.interaction.GetType().GetField("takeResourcesBox", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -52,7 +46,7 @@ namespace Blueprints
         }
 
         public static void updateDisplayBox() {
-            Vector3Int location = BlueprintsPlugin.getAboveMinPosOfAimedMachine();
+            Vector3Int location = AimingHelper.getAboveMinPosOfAimedMachine();
             if(BlueprintsPlugin.clipboard.getRotatedSize().x < 0) ++location.x;
             if (BlueprintsPlugin.clipboard.getRotatedSize().z < 0) ++location.z;
 
@@ -60,117 +54,166 @@ namespace Blueprints
             pasteRegionDisplayBox.transform.position = location;
             pasteRegionDisplayBox.transform.rotation = Quaternion.identity;
 
-            if (BlueprintsPlugin.cwRotateShortcut.Value.IsDown()) {
+            if (BlueprintsPlugin.cwRotateShortcut.Value.IsDown() && !UI.isOpen) {
                 BlueprintsPlugin.clipboard.rotateCW();
             }
-            else if (BlueprintsPlugin.ccwRotateShortcut.Value.IsDown()) {
+            else if (BlueprintsPlugin.ccwRotateShortcut.Value.IsDown() && !UI.isOpen) {
                 BlueprintsPlugin.clipboard.rotateCCW();
             }
-
-            //Debug.Log($"Rounded Aim Location: {BlueprintsPlugin.getAboveMinPosOfAimedMachine()}");
-            //Debug.Log($"Position: {location}");
-            //Debug.Log($"Size: {BlueprintsPlugin.clipboard.size}");
         }
 
         public static void endPasting() {
             isPasting = false;
             pasteRegionDisplayBox.SetActive(false);
-
-            Vector3 placement = Player.instance.builder.CurrentAimTarget;
-            Debug.Log($"Pasting clipboard above {placement}");
-            Debug.Log($"Rounded: {BlueprintsPlugin.getAboveMinPosOfAimedMachine()}");
-            Debug.Log($"Rotated Size: {BlueprintsPlugin.clipboard.getRotatedSize()}");
-
             List<Vector3> rotatedRelativePositions = BlueprintsPlugin.clipboard.getMachineRelativePositions();
 
-            for (int i = 0; i < BlueprintsPlugin.clipboard.machines.Count; i++) {
-                IMachineInstanceRef machine = BlueprintsPlugin.clipboard.machines[i];
+            for (int i = 0; i < BlueprintsPlugin.clipboard.machineIDs.Count; i++) {
 
-                Debug.Log($"Machine {i + 1} ({SaveState.GetResInfoFromId(machine.GetCommonInfo().resId)}) has an offset of {BlueprintsPlugin.clipboard.machineRelativePositions[i]}");
+                uint id = BlueprintsPlugin.clipboard.machineIDs[i];
+                int resId = BlueprintsPlugin.clipboard.machineResIDs[i];
+                MachineTypeEnum type = (MachineTypeEnum)BlueprintsPlugin.clipboard.machineTypes[i];
+                int yawRotation = BlueprintsPlugin.clipboard.machineRotations[i];
+                int recipe = BlueprintsPlugin.clipboard.machineRecipes[i];
+                ConveyorInstance.BeltShape beltShape = (ConveyorInstance.BeltShape)BlueprintsPlugin.clipboard.conveyorShapes[i];
+                bool buildBeltBackwards = BlueprintsPlugin.clipboard.conveyorBuildBackwards[i];
 
-                Vector3Int newMinPos = BlueprintsPlugin.getAboveMinPosOfAimedMachine();
-                
-                newMinPos.x += (int)rotatedRelativePositions[i].x;
-                newMinPos.y += (int)rotatedRelativePositions[i].y;
-                newMinPos.z += (int)rotatedRelativePositions[i].z;
-
-                Debug.Log($"Placing machine at {newMinPos}");
-
-                GridInfo newGridInfo = new GridInfo();
-                newGridInfo.CopyFrom(machine.gridInfo);
-                //Debug.Log($"Machine {machine.instanceId} pre-rotation yawRot: {newGridInfo.YawRotation}");
-                int newYaw = machine.gridInfo.yawRot + BlueprintsPlugin.clipboard.getMachineRotation(machine.instanceId);
-                if (newYaw >= 360) newYaw -= 360;
-                else if (newYaw < 0) newYaw += 360;
-
-                newGridInfo.SetYawRotation(machine.gridInfo.yawRot + BlueprintsPlugin.clipboard.getMachineRotation(machine.instanceId));
-                //Debug.Log($"Machine {machine.instanceId} post-rotation yawRot: {newGridInfo.YawRotation}");
-
-                if (machine.typeIndex != MachineTypeEnum.Conveyor) {
-                    SimpleBuildInfo info = new SimpleBuildInfo() {
-                        machineType = machine.GetCommonInfo().resId,
-                        rotation = newGridInfo.YawRotation,
-                        minGridPos = newMinPos,
-                    };
-                    info.tick += 10;
-                    SimpleBuildAction action = new SimpleBuildAction() {
-                        info = (SimpleBuildInfo)info.Clone(),
-                        resourceCostAmount = 1,
-                        resourceCostID = machine.GetCommonInfo().resId,
-                    };
-
-                    Debug.Log($"Sending build action for {info.machineType} = {SaveState.GetResInfoFromId(info.machineType)}");
-
-                    newGridInfo.minPos = newMinPos;
-                    if (!GridManager.instance.CheckBuildableIncludingVoxelsAt(newGridInfo)) {
-                        Debug.Log($"Can't build at {placement} | {newMinPos}");
-                        return;
-                    }
-                    else {
-                        Debug.Log($"Building at {newMinPos}");
-                    }
-
-                    NetworkMessageRelay.instance.SendNetworkAction(action);
-                    Debug.Log($"Sent network message relay");
+                GridInfo newGridInfo = getNewGridInfo(rotatedRelativePositions, i, yawRotation, id);
+                if (!GridManager.instance.CheckBuildableIncludingVoxelsAt(newGridInfo)) {
+                    BlueprintsPlugin.Notify($"Couldn't build {type} at {newGridInfo.minPos}");
+                    continue;
                 }
-                else {
-                    ConveyorMachineList machineList = (ConveyorMachineList)FactorySimManager.instance.machineManager.GetMachineList<ConveyorInstance, ConveyorDefinition>(MachineTypeEnum.Conveyor);
-                    List<ConveyorBuildInfo.ChainData> chainData = new List<ConveyorBuildInfo.ChainData>();
-                    bool reversed = false;
 
-                    GenericMachineInstanceRef thisGenericMachine = BlueprintsPlugin.clipboard.genericMachineInstanceRefs[i];
-                    ConveyorInstance instance = machineList.myArray[thisGenericMachine.index];
-                    reversed = instance.buildBackwards;
+                switch (type) {
+                    case MachineTypeEnum.Assembler:
+                        if (recipe == -1) doSimpleBuild(resId, type, newGridInfo);
+                        else doSimpleWithRecipeBuild(resId, type, newGridInfo, recipe);
+                        break;
 
-                    //if (instance.beltShape == ConveyorInstance.BeltShape.Up || instance.beltShape == ConveyorInstance.BeltShape.Down) {
-                    //    --newMinPos.y;
-                    //}
+                    case MachineTypeEnum.Inserter: 
+                        doSimpleWithRecipeBuild(resId, type, newGridInfo, recipe); 
+                        break;
 
-                    chainData.Add(new ConveyorBuildInfo.ChainData() {
-                        count = 1,
-                        shape = instance.beltShape,
-                        rotation = newGridInfo.yawRot,
-                        start = newMinPos
-                    });
+                    case MachineTypeEnum.Conveyor:
+                        List<ConveyorBuildInfo.ChainData> chainData = new List<ConveyorBuildInfo.ChainData>() {
+                            new ConveyorBuildInfo.ChainData() {
+                                count = 1,
+                                shape = beltShape,
+                                rotation = newGridInfo.yawRot,
+                                start = newGridInfo.minPos
+                            }
+                        };
+                        doConveyorBuild(resId, chainData, buildBeltBackwards);
+                        break;
 
-                    ConveyorBuildInfo info = new ConveyorBuildInfo() {
-                        machineType = machine.GetCommonInfo().resId,
-                        chainData = chainData,
-                        isReversed = reversed,
-                        machineIds = new List<uint>(),
+                    case MachineTypeEnum.Drill:
+                        doDrillBuild(resId, newGridInfo);
+                        break;
 
-                    };
-                    info.tick += 5;
-                    ConveyorBuildAction action = new ConveyorBuildAction() {
-                        info = (ConveyorBuildInfo)info.Clone(),
-                        resourceCostAmount = info.chainData.Count,
-                        resourceCostID = machine.GetCommonInfo().resId
-                    };
-                    NetworkMessageRelay.instance.SendNetworkAction(action);
+                    default:
+                        doSimpleBuild(resId, type, newGridInfo);
+                        break;
                 }
             }
 
+            BlueprintsPlugin.clipboard.rotation = 0;
             BlueprintsPlugin.clipboard.clearMachineRotations();
+        }
+
+        // Private Functions
+
+        private static bool checkInventory() {
+            if (BlueprintsPlugin.debugMode) return true;
+            
+            bool hasResources = true;
+            foreach (MachineCost cost in BlueprintsPlugin.clipboard.getCost()) {
+                ResourceInfo info = SaveState.GetResInfoFromId(cost.resId);
+                if (!Player.instance.inventory.myInv.HasResources(info, cost.count)) {
+                    BlueprintsPlugin.Notify($"Not enough {info.displayName} {Player.instance.inventory.myInv.GetResourceCount(cost.resId)}/{cost.count}");
+                    hasResources = false;
+                }
+            }
+
+            return hasResources;
+        }
+
+        private static GridInfo getNewGridInfo(List<Vector3> rotatedRelativePositions, int index, int yawRotation, uint id) {
+            GridInfo newGridInfo = new GridInfo();
+
+            Vector3Int newMinPos = AimingHelper.getAboveMinPosOfAimedMachine();
+            newMinPos.x += (int)rotatedRelativePositions[index].x;
+            newMinPos.y += (int)rotatedRelativePositions[index].y;
+            newMinPos.z += (int)rotatedRelativePositions[index].z;
+            newGridInfo.minPos = newMinPos;
+
+            int newYaw = yawRotation + BlueprintsPlugin.clipboard.getMachineRotation(id);
+            if (newYaw >= 360) newYaw -= 360;
+            else if (newYaw < 0) newYaw += 360;
+            newGridInfo.SetYawRotation(newYaw);
+
+            Debug.Log($"Old Yaw Rotation: {yawRotation}");
+            Debug.Log($"New Yaw Rotation: {newYaw}");
+
+            return newGridInfo;
+        }
+
+        private static void doSimpleBuild(int resId, MachineTypeEnum type, GridInfo newGridInfo) {
+            SimpleBuildInfo info = new SimpleBuildInfo() {
+                machineType = resId,
+                rotation = newGridInfo.YawRotation,
+                minGridPos = newGridInfo.minPos,
+            };
+            SimpleBuildAction action = new SimpleBuildAction() {
+                info = (SimpleBuildInfo)info.Clone(),
+                resourceCostAmount = 1,
+                resourceCostID = resId,
+            };
+            NetworkMessageRelay.instance.SendNetworkAction(action);
+            // if (!BlueprintsPlugin.debugMode) Player.instance.inventory.myInv.TryRemoveResources(action.resourceCostID, action.resourceCostAmount);
+            Debug.Log($"Built {type} at {newGridInfo.minPos}");
+        }
+
+        private static void doSimpleWithRecipeBuild(int resId, MachineTypeEnum type, GridInfo newGridInfo, int recipe) {
+            BuildWithRecipeInfo info = new BuildWithRecipeInfo() {
+                machineType = resId,
+                rotation = newGridInfo.YawRotation,
+                minGridPos = newGridInfo.minPos,
+                recipe = recipe
+            };
+            BuildWithRecipeAction action = new BuildWithRecipeAction() {
+                info = (BuildWithRecipeInfo)info.Clone(),
+                resourceCostAmount = 1,
+                resourceCostID = resId
+            };
+            NetworkMessageRelay.instance.SendNetworkAction(action);
+            // if (!BlueprintsPlugin.debugMode) Player.instance.inventory.myInv.TryRemoveResources(action.resourceCostID, action.resourceCostAmount);
+            Debug.Log($"Built {type} at {newGridInfo.minPos}");
+        }
+
+        private static void doConveyorBuild(int resId, List<ConveyorBuildInfo.ChainData> chainData, bool reversed) {
+            ConveyorBuildInfo info = new ConveyorBuildInfo() {
+                machineType = resId,
+                chainData = chainData,
+                isReversed = reversed,
+                machineIds = new List<uint>()
+            };
+            ConveyorBuildAction action = new ConveyorBuildAction() {
+                info = (ConveyorBuildInfo)info.Clone(),
+                resourceCostAmount = info.chainData.Count,
+                resourceCostID = resId
+            };
+            NetworkMessageRelay.instance.SendNetworkAction(action);
+            // if(!BlueprintsPlugin.debugMode) Player.instance.inventory.myInv.TryRemoveResources(action.resourceCostID, action.resourceCostAmount);
+            Debug.Log($"Built Conveyor at {chainData[0].count}");
+        }
+
+        private static void doDrillBuild(int resId, GridInfo newGridInfo) {
+            SimpleBuildInfo info = new SimpleBuildInfo() {
+                machineType = resId,
+                rotation = newGridInfo.YawRotation,
+                minGridPos = newGridInfo.minPos
+            };
+            Player.instance.builder.GetBuilderForType(BuilderInfo.BuilderType.DrillBuilder).BuildFromNetworkData(info, false);
+            Debug.Log($"Built Drill at {newGridInfo.minPos}");
         }
     }
 }

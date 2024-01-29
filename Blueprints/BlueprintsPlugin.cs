@@ -2,11 +2,12 @@
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using Blueprints.Patches;
-using EquinoxsModUtils;
 using HarmonyLib;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Eventing.Reader;
+using System.IO;
 using System.Reflection;
 using UnityEngine;
 
@@ -34,7 +35,6 @@ namespace Blueprints
         public static ConfigEntry<KeyboardShortcut> ccwRotateShortcut;
         public static ConfigEntry<KeyboardShortcut> blueprintsShortcut;
 
-        public static LayerMask? buildablesMask = null;
         public static Blueprint clipboard = null;
         public const bool debugMode = false;
 
@@ -46,16 +46,19 @@ namespace Blueprints
             pasteShortcut = Config.Bind("General", pasteShortcutKey, new KeyboardShortcut(KeyCode.V, KeyCode.LeftControl));
             cwRotateShortcut = Config.Bind("General", cwRotateKey, new KeyboardShortcut(KeyCode.Z));
             ccwRotateShortcut = Config.Bind("General", ccwRotateKey, new KeyboardShortcut(KeyCode.Z, KeyCode.LeftControl));
-            blueprintsShortcut = Config.Bind("General", blueprintsKey, new KeyboardShortcut(KeyCode.C));
+            blueprintsShortcut = Config.Bind("General", blueprintsKey, new KeyboardShortcut(KeyCode.X, KeyCode.LeftControl));
 
             Harmony.CreateAndPatchAll(typeof(PlayerInspectorPatch));
+            Harmony.CreateAndPatchAll(typeof(PauseMenuPatch));
 
             Logger.LogInfo($"PluginName: {PluginName}, VersionString: {VersionString} is loaded.");
             Log = Logger;
+
+            UI.start();
         }
 
         private void Update() {
-            if (copyShortcut.Value.IsDown()) {
+            if (copyShortcut.Value.IsDown() && !UI.isOpen) {
                 if (!MachineCopier.isCopying) {
                     MachineCopier.startCopying();
                 }
@@ -64,7 +67,7 @@ namespace Blueprints
                 }
             }
 
-            if (pasteShortcut.Value.IsDown()) {
+            if (pasteShortcut.Value.IsDown() && !UI.isOpen && !MachineCopier.isCopying) {
                 if (!MachinePaster.isPasting) {
                     MachinePaster.startPasting();
                 }
@@ -73,8 +76,9 @@ namespace Blueprints
                 }
             }
 
-            if (blueprintsShortcut.Value.IsDown() && !UI.isOpen) {
-                UI.show();
+            if (blueprintsShortcut.Value.IsDown()) {
+                if (!UI.isOpen) UI.show();
+                else UI.hide();
             }
 
             if (MachineCopier.isCopying) MachineCopier.updateEndPosition();
@@ -83,55 +87,26 @@ namespace Blueprints
 
         // Public Functions
 
-        public static Vector3? getLookedAtMachinePos() {
-            Camera cam = Player.instance.cam;
-            GenericMachineInstanceRef machineRef = GenericMachineInstanceRef.INVALID_REFERENCE;
-            RaycastHit raycastHit;
-            if (Physics.Raycast(cam.transform.position, cam.transform.forward, out raycastHit, 1000, (LayerMask)buildablesMask)) {
-                machineRef = FHG_Utils.FindMachineRef(raycastHit.collider.gameObject);
-                if (machineRef.instanceId != GenericMachineInstanceRef.INVALID_REFERENCE.instanceId && machineRef.MyGridInfo.Center != null) {
-                    return machineRef.MyGridInfo.Center;
+        public static void Notify(string message) {
+            Debug.Log(message);
+            UIManager.instance.systemLog.FlashMessage(new SystemMessageInfo(message));
+        }
+
+        public static void saveClipboardToFile() {
+            File.WriteAllText(UI.curerntBlueprintFile, clipboard.toJson());
+        }
+
+        public static void loadFileToClipboard() {
+            if (!File.Exists(UI.curerntBlueprintFile)) return;
+            string json = File.ReadAllText(UI.curerntBlueprintFile);
+            clipboard = JsonConvert.DeserializeObject<Blueprint>(json);
+            clipboard.setSize(clipboard.size.asUnityVector3());
+
+            if(clipboard.chestSizes.Count == 0) {
+                for(int i = 0; i < clipboard.machineIDs.Count; i++) {
+                    clipboard.chestSizes.Add(0);
                 }
             }
-
-            return null;
-        }
-
-        public static Vector3? getAboveLookedAtMachinePos() {
-            Camera cam = Player.instance.cam;
-            GenericMachineInstanceRef machineRef = GenericMachineInstanceRef.INVALID_REFERENCE;
-            RaycastHit raycastHit;
-            if (Physics.Raycast(cam.transform.position, cam.transform.forward, out raycastHit, 1000, (LayerMask)buildablesMask)) {
-                machineRef = FHG_Utils.FindMachineRef(raycastHit.collider.gameObject);
-                if(machineRef.instanceId != GenericMachineInstanceRef.INVALID_REFERENCE.instanceId && machineRef.MyGridInfo.Center != null) {
-                    Vector3 result = machineRef.MyGridInfo.Center;
-                    result.y += machineRef.MyGridInfo.dims.y;
-                    return result;
-                }
-            }
-
-            return null;
-        }
-
-        public static Vector3Int getRoundedAimLocation() {
-            Vector3 placement = Player.instance.builder.CurrentAimTarget;
-            return new Vector3Int() {
-                x = (int)(placement.x >= 0 ? Math.Floor(placement.x) : Math.Ceiling(placement.x)),
-                y = (int)(placement.y >= 0 ? Math.Floor(placement.y) : Math.Ceiling(placement.y)),
-                z = (int)(placement.z >= 0 ? Math.Floor(placement.z) : Math.Ceiling(placement.z)),
-            };
-        }
-
-        public static Vector3Int getMinPosOfAimedMachine() {
-            FieldInfo targetMachineInfo = typeof(PlayerInteraction).GetField("targetMachineRef", BindingFlags.Instance | BindingFlags.NonPublic);
-            GenericMachineInstanceRef machine = (GenericMachineInstanceRef)targetMachineInfo.GetValue(Player.instance.interaction);
-            return machine.GetGridInfo().minPos;
-        }
-
-        public static Vector3Int getAboveMinPosOfAimedMachine() {
-            Vector3Int pos = getMinPosOfAimedMachine();
-            ++pos.y;
-            return pos;
         }
     }
 }

@@ -14,10 +14,10 @@ namespace Blueprints.Patches
         [HarmonyPatch(typeof(PlayerInspector), "LateUpdate")]
         [HarmonyPrefix]
         public static void getBuildableMask(PlayerInspector __instance) {
-            if (BlueprintsPlugin.buildablesMask != null) return;
+            if (AimingHelper.buildablesMask != null) return;
 
             FieldInfo collisionLayersInfo = __instance.GetType().GetField("collisionLayers", BindingFlags.Instance | BindingFlags.NonPublic);
-            BlueprintsPlugin.buildablesMask = (LayerMask)collisionLayersInfo.GetValue(__instance);
+            AimingHelper.buildablesMask = (LayerMask)collisionLayersInfo.GetValue(__instance);
         }
     }
 }

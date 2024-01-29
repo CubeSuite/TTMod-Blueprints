@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -22,14 +24,14 @@ namespace Blueprints
         // Public Functions
 
         public static void startCopying() {
-            Vector3? startPosResult = BlueprintsPlugin.getLookedAtMachinePos();
+            Vector3? startPosResult = AimingHelper.getLookedAtMachinePos();
             if (startPosResult == null) return;
             copyRegionStart = (Vector3)startPosResult;
-            if (copyRegionStart.y % 1 == 0.5) copyRegionStart.y -= 0.49f;
+            if (Mathf.Abs(copyRegionStart.y % 1) == 0.5) copyRegionStart.y -= 0.49f;
             //copyRegionStart = BlueprintsPlugin.getMinPosOfAimedMachine();
             //copyRegionStart.y += 0.01f;
             copyRegionBounds = new Bounds(copyRegionStart, Vector3.zero);
-            copyRegionAnchor = BlueprintsPlugin.getMinPosOfAimedMachine();
+            copyRegionAnchor = AimingHelper.getMinPosOfAimedMachine();
             isCopying = true;
 
             Debug.Log($"Started copying: {copyRegionStart}");
@@ -43,7 +45,7 @@ namespace Blueprints
         }
 
         public static void updateEndPosition() {
-            Vector3? currentEndPosResult = BlueprintsPlugin.getLookedAtMachinePos();
+            Vector3? currentEndPosResult = AimingHelper.getLookedAtMachinePos();
             if (currentEndPosResult == null) return;
 
             Vector3 currentEndPos = (Vector3)currentEndPosResult;
@@ -61,7 +63,7 @@ namespace Blueprints
         }
 
         public static void endCopying() {
-            Vector3? endtPosResult = BlueprintsPlugin.getLookedAtMachinePos();
+            Vector3? endtPosResult = AimingHelper.getLookedAtMachinePos();
             if (endtPosResult == null) return;
             copyRegionEnd = (Vector3)endtPosResult;
             isCopying = false;
@@ -81,11 +83,58 @@ namespace Blueprints
             copyRegionDisplayBox.SetActive(false);
 
             HashSet<IMachineInstanceRef> machines = getMachinesToCopy();
-            Blueprint blueprint = new Blueprint() {
-                name = "test",
-                machines = machines.ToList(),
-                genericMachineInstanceRefs = getMachineRefsInBounds().ToList()
-            };
+            Blueprint blueprint = new Blueprint() { name = "test" };
+
+            foreach(IMachineInstanceRef machine in machines) {
+                blueprint.machineIDs.Add(machine.instanceId);
+                blueprint.machineResIDs.Add(machine.GetCommonInfo().resId);
+                blueprint.machineTypes.Add((int)machine.typeIndex);
+                blueprint.machineRotations.Add(machine.GetGridInfo().yawRot);
+
+                GenericMachineInstanceRef generic = machine.AsGeneric();
+
+                switch (machine.typeIndex) {
+                    case MachineTypeEnum.Assembler:
+                        AssemblerInstance assembler = generic.Get<AssemblerInstance>();
+                        blueprint.machineRecipes.Add(assembler.targetRecipe == null ? -1 : assembler.targetRecipe.uniqueId);
+                        blueprint.conveyorShapes.Add(0);
+                        blueprint.conveyorBuildBackwards.Add(false);
+                        blueprint.chestSizes.Add(0);
+                        break;
+
+                    case MachineTypeEnum.Inserter:
+                        InserterInstance inserter = generic.Get<InserterInstance>();
+                        blueprint.machineRecipes.Add(inserter.filterType);
+                        blueprint.conveyorShapes.Add(0);
+                        blueprint.conveyorBuildBackwards.Add(false);
+                        blueprint.chestSizes.Add(0);
+                        break;
+
+                    case MachineTypeEnum.Conveyor:
+                        ConveyorInstance conveyor = generic.Get<ConveyorInstance>();
+                        blueprint.machineRecipes.Add(0);
+                        blueprint.conveyorShapes.Add((int)conveyor.beltShape);
+                        blueprint.conveyorBuildBackwards.Add(conveyor.buildBackwards);
+                        blueprint.chestSizes.Add(0);
+                        break;
+
+                    case MachineTypeEnum.Chest:
+                        ChestInstance chest = generic.Get<ChestInstance>();
+                        blueprint.machineRecipes.Add(0);
+                        blueprint.conveyorShapes.Add(0);
+                        blueprint.conveyorBuildBackwards.Add(false);
+                        blueprint.chestSizes.Add(chest.commonInfo.inventories[0].numSlots);
+                        break;
+
+                    default:
+                        blueprint.machineRecipes.Add(0);
+                        blueprint.conveyorShapes.Add(0);
+                        blueprint.conveyorBuildBackwards.Add(false);
+                        blueprint.chestSizes.Add(0);
+                        break;
+                }
+            }
+
             blueprint.setSize(size);
 
             //Vector3Int blueprintAnchorPoint = new Vector3Int() {
@@ -95,11 +144,12 @@ namespace Blueprints
             //};
 
             foreach(IMachineInstanceRef machine in machines) {
-                blueprint.machineRelativePositions.Add(machine.GetGridInfo().minPos - copyRegionAnchor);
+                blueprint.machineRelativePositions.Add(new MyVector3(machine.GetGridInfo().minPos - copyRegionAnchor));
                 //Debug.Log($"minPos({machine.GetGridInfo().minPos}) - anchor({copyRegionAnchor}) = offset({machine.GetGridInfo().minPos - copyRegionAnchor})");
             }
 
             BlueprintsPlugin.clipboard = blueprint;
+            BlueprintsPlugin.saveClipboardToFile();
         }
 
         // Private Functions
@@ -112,7 +162,7 @@ namespace Blueprints
 
         private static HashSet<GenericMachineInstanceRef> getMachineRefsInBounds() {
             HashSet<GenericMachineInstanceRef> machines = new HashSet<GenericMachineInstanceRef>();
-            Collider[] colliders = Physics.OverlapBox(copyRegionBounds.center, copyRegionBounds.extents, Quaternion.identity, (LayerMask)BlueprintsPlugin.buildablesMask);
+            Collider[] colliders = Physics.OverlapBox(copyRegionBounds.center, copyRegionBounds.extents, Quaternion.identity, (LayerMask)AimingHelper.buildablesMask);
             foreach (Collider collider in colliders) {
                 GenericMachineInstanceRef collidedMachineRef = FHG_Utils.FindMachineRef(collider.gameObject);
                 if (collidedMachineRef.IsValid()) {
