@@ -14,7 +14,6 @@ namespace Blueprints.Patches
         [HarmonyPrefix]
         static void markUIClosed() {
             UI.isOpen = false;
-            Debug.Log("Marked ui closed");
         }
     }
 }

@@ -12,9 +12,10 @@ namespace Blueprints
     {
         // Objects & Variables
         public static string dataFolder = $"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\\TechtonicaBlueprintsData";
-        public static string curerntBlueprintFile = $"{dataFolder}\\CurrentBlueprint.json";
+        public static string currentBlueprintFile = $"{dataFolder}\\CurrentBlueprint.json";
         public static string showFile = $"{dataFolder}\\Show.txt";
         public static string hideFile = $"{dataFolder}\\Hide.txt";
+        public static string resumeFile = $"{dataFolder}\\Resume.txt";
         public static bool isOpen = false;
 
         // Public Functions
@@ -37,14 +38,12 @@ namespace Blueprints
             File.WriteAllText(showFile, "");
             isOpen = true;
             if (UIManager.instance != null) UIManager.instance.pauseMenu.Open();
-            Debug.Log("Opened UI");
         }
 
         public static void hide() {
             File.WriteAllText(hideFile, "");
             isOpen = false;
             if (UIManager.instance != null) UIManager.instance.pauseMenu.Close();
-            Debug.Log("Hid UI");
         }
     }
 }

@@ -36,13 +36,27 @@ namespace Blueprints
             if (Physics.Raycast(cam.transform.position, cam.transform.forward, out raycastHit, 1000, (LayerMask)buildablesMask)) {
                 machineRef = FHG_Utils.FindMachineRef(raycastHit.collider.gameObject);
                 if (machineRef.instanceId != GenericMachineInstanceRef.INVALID_REFERENCE.instanceId && machineRef.MyGridInfo.Center != null) {
-                    Vector3 result = machineRef.MyGridInfo.Center;
+                    Vector3 result = machineRef.MyGridInfo.BottomCenter;
                     result.y += machineRef.MyGridInfo.dims.y;
                     return result;
                 }
             }
 
             return null;
+        }
+
+        public static Vector3 getAimedLocationForPasting() {
+            Vector3 currentAim = Player.instance.builder.CurrentAimTarget;
+            
+            if (currentAim.x >= 0) currentAim.x += 0.5f - (currentAim.x % Mathf.Floor(currentAim.x));
+            else currentAim.x += (Mathf.Abs(currentAim.x) % Mathf.Floor(Mathf.Abs(currentAim.x))) - 0.5f;
+            
+            currentAim.y = Mathf.Floor(currentAim.y);
+            
+            if (currentAim.z >= 0) currentAim.z += 0.5f - (currentAim.z % Mathf.Floor(currentAim.x));
+            else currentAim.z += (Mathf.Abs(currentAim.z) % Mathf.Floor(Mathf.Abs(currentAim.z))) - 0.5f;
+
+            return currentAim;
         }
 
         public static Vector3Int getRoundedAimLocation() {
@@ -64,6 +78,13 @@ namespace Blueprints
             Vector3Int pos = getMinPosOfAimedMachine();
             ++pos.y;
             return pos;
+        }
+
+        public static Vector3 clampToAxis(Vector3 vector) {
+            vector.x = Mathf.RoundToInt(vector.x);
+            vector.y = Mathf.RoundToInt(vector.y);
+            vector.z = Mathf.RoundToInt(vector.z);
+            return vector;
         }
     }
 }
