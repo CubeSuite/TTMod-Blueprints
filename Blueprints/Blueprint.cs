@@ -29,6 +29,7 @@ namespace Blueprints
         public List<int> machineTypes = new List<int>();
         public List<int> machineRotations = new List<int>();
         public List<int> machineRecipes = new List<int>();
+        public List<int> machineVariationIndexes = new List<int>();
         public List<MyVector3> machineDimensions = new List<MyVector3>();
         public List<int> conveyorShapes = new List<int>();
         public List<bool> conveyorBuildBackwards = new List<bool>();

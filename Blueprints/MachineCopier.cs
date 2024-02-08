@@ -221,6 +221,16 @@ namespace Blueprints
         }
 
         private static HashSet<GenericMachineInstanceRef> getMachineRefsInBounds() {
+            bool debugFunction = false;
+            copyRegionBounds.extents -= new Vector3(0.01f, 0.01f, 0.01f);
+
+            if (debugFunction) {
+                Debug.Log($"getMachineRefsInBounds() copyRegionBounds.center: {copyRegionBounds.center}");
+                Debug.Log($"getMachineRefsInBounds() copyRegionBounds.extents: {copyRegionBounds.extents}");
+                Debug.Log($"getMachineRefsInBounds() copyRegionBounds.min: {copyRegionBounds.min}");
+                Debug.Log($"getMachineRefsInBounds() copyRegionBounds.max: {copyRegionBounds.max}");
+            }
+
             HashSet<GenericMachineInstanceRef> machines = new HashSet<GenericMachineInstanceRef>();
             Collider[] colliders = Physics.OverlapBox(copyRegionBounds.center, copyRegionBounds.extents, Quaternion.identity, (LayerMask)AimingHelper.buildablesMask);
             foreach (Collider collider in colliders) {
