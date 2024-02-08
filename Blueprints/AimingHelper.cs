@@ -46,6 +46,10 @@ namespace Blueprints
         }
 
         public static Vector3 getAimedLocationForPasting() {
+            if (MachinePaster.isPositionLocked) {
+                return MachinePaster.lockedPosition;
+            }
+
             Vector3 currentAim = Player.instance.builder.CurrentAimTarget;
             
             if (currentAim.x >= 0) currentAim.x += 0.5f - (currentAim.x % Mathf.Floor(currentAim.x));

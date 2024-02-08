@@ -16,6 +16,7 @@ namespace Blueprints
         public static string showFile = $"{dataFolder}\\Show.txt";
         public static string hideFile = $"{dataFolder}\\Hide.txt";
         public static string resumeFile = $"{dataFolder}\\Resume.txt";
+        public static string pasteFile = $"{dataFolder}\\Paste.txt";
         public static bool isOpen = false;
 
         // Public Functions
