@@ -33,6 +33,9 @@ namespace Blueprints
         public List<MyVector3> machineDimensions = new List<MyVector3>();
         public List<int> conveyorShapes = new List<int>();
         public List<bool> conveyorBuildBackwards = new List<bool>();
+        public List<int> conveyorHeights = new List<int>();
+        public List<bool> conveyorInputBottoms = new List<bool>();
+        public List<int> conveyorTopYawRots = new List<int>();
         public List<int> chestSizes = new List<int>();
         
         public List<MyVector3> machineRelativePositions = new List<MyVector3>();

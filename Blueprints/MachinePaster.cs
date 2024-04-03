@@ -63,7 +63,7 @@ namespace Blueprints
                 isPositionLocked = false;
                 BlueprintsPlugin.Notify("Canceled pasting");
             }
-            
+
             Vector3 currentAim = AimingHelper.getAimedLocationForPasting();
             if (!isPositionLocked) lockedPosition = currentAim;
 
@@ -96,7 +96,7 @@ namespace Blueprints
 
         public static void endPasting() {
             isPasting = false;
-            hideHolograms();
+            // hideHolograms();
             finalAimLocation = AimingHelper.getAimedLocationForPasting();
 
             for(int i  = 0; i < clipboard.machineIDs.Count; i++) {
@@ -164,6 +164,13 @@ namespace Blueprints
             clipboard.clearMachineRotations();
         }
 
+        public static void hideFirstHologram() {
+            if(holograms.Count > 0) {
+                holograms[0].AbandonHologramPreview();
+                holograms.RemoveAt(0);
+            }
+        }
+
         public static void hideHolograms() {
             foreach (StreamedHologramData hologram in holograms) {
                 hologram.AbandonHologramPreview();
@@ -224,10 +231,17 @@ namespace Blueprints
                 if (debugFunction) Debug.Log($"renderHolograms() thisHologramPos before dim offset: {thisHologramPos}");
 
                 if (type == MachineTypeEnum.Conveyor) {
+                    if (debugFunction) Debug.Log("renderingHolograms() rendering conveyor");
+
                     ConveyorHologramData conveyorHologram = builderInfo.GenerateUnbuiltHologramData() as ConveyorHologramData;
                     conveyorHologram.buildBackwards = clipboard.conveyorBuildBackwards[i];
                     conveyorHologram.curShape = (ConveyorInstance.BeltShape)clipboard.conveyorShapes[i];
                     conveyorHologram.numBelts = 1;
+                    if(conveyorHologram.curShape == ConveyorInstance.BeltShape.Vertical) {
+                        conveyorHologram.numBelts = clipboard.conveyorHeights[i];
+                        conveyorHologram.verticalHeight = clipboard.conveyorHeights[i];
+                        conveyorHologram.inputBottom = clipboard.conveyorInputBottoms[i];
+                    }
 
                     yawRotation = clipboard.machineRotations[i];
 
@@ -235,8 +249,13 @@ namespace Blueprints
                     conveyorHologram.SetTransform(thisHologramPos, conveyorRotation);
                     conveyorHologram.ShowUnbuilt(true, true);
                     holograms.Add(conveyorHologram);
+
+                    if (debugFunction) Debug.Log("renderHolograms() added conveyor to holograms");
+
                     continue;
                 }
+
+                if (debugFunction) Debug.Log("renderingHolograms() rendering non-conveyor");
 
                 StreamedHologramData hologram = builderInfo.GenerateUnbuiltHologramData();
 

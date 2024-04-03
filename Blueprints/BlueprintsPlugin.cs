@@ -20,7 +20,7 @@ namespace Blueprints
     {
         private const string MyGUID = "com.equinox.Blueprints";
         private const string PluginName = "Blueprints";
-        private const string VersionString = "1.1.0";
+        private const string VersionString = "2.0.0";
 
         private static readonly Harmony Harmony = new Harmony(MyGUID);
         public static ManualLogSource Log = new ManualLogSource(PluginName);
@@ -110,6 +110,7 @@ namespace Blueprints
             if (MachinePaster.isPasting) MachinePaster.updateHolograms();
         }
 
+        float sSinceLastBuild = 0;
         private void FixedUpdate() {
             if(machinesToCopy.Count != 0) {
                 IMachineInstanceRef machine = machinesToCopy[0];
@@ -121,10 +122,13 @@ namespace Blueprints
                 }
             }
 
-            if(machinesToBuild.Count != 0) {
+            sSinceLastBuild += Time.deltaTime;
+            if(machinesToBuild.Count != 0 && sSinceLastBuild > 0.1) {
                 int index = machinesToBuild[0];
                 buildMachineAtIndex(index);
                 machinesToBuild.RemoveAt(0);
+                sSinceLastBuild = 0;
+                MachinePaster.hideFirstHologram();
                 if (machinesToBuild.Count == 0) {
                     Notify("Finished pasting");
                     MachinePaster.postPaste();
@@ -149,15 +153,33 @@ namespace Blueprints
             clipboard = JsonConvert.DeserializeObject<Blueprint>(json);
             clipboard.setSize(clipboard.size.asUnityVector3());
 
-            if(clipboard.chestSizes.Count == 0) {
+            if(clipboard.conveyorHeights.Count == 0) {
                 for(int i = 0; i < clipboard.machineIDs.Count; i++) {
-                    clipboard.chestSizes.Add(0);
+                    clipboard.conveyorHeights.Add(0);
                 }
             }
 
-            if(clipboard.machineVariationIndexes.Count == 0) {
+            if (clipboard.conveyorInputBottoms.Count == 0) {
+                for (int i = 0; i < clipboard.machineIDs.Count; i++) {
+                    clipboard.conveyorInputBottoms.Add(false);
+                }
+            }
+
+            if (clipboard.conveyorTopYawRots.Count == 0) {
+                for (int i = 0; i < clipboard.machineIDs.Count; i++) {
+                    clipboard.conveyorTopYawRots.Add(0);
+                }
+            }
+
+            if (clipboard.machineVariationIndexes.Count == 0) {
                 for(int i = 0; i < clipboard.machineIDs.Count; i++) {
                     clipboard.machineVariationIndexes.Add(-1);
+                }
+            }
+
+            if (clipboard.chestSizes.Count == 0) {
+                for (int i = 0; i < clipboard.machineIDs.Count; i++) {
+                    clipboard.chestSizes.Add(0);
                 }
             }
         }
@@ -253,14 +275,21 @@ namespace Blueprints
                     clipboard.machineRecipes.Add(assembler.targetRecipe == null ? -1 : assembler.targetRecipe.uniqueId);
                     clipboard.conveyorShapes.Add(0);
                     clipboard.conveyorBuildBackwards.Add(false);
+                    clipboard.conveyorHeights.Add(0);
+                    clipboard.conveyorInputBottoms.Add(false);
+                    clipboard.conveyorTopYawRots.Add(0);
                     clipboard.chestSizes.Add(0);
                     break;
 
                 case MachineTypeEnum.Inserter:
                     InserterInstance inserter = generic.Get<InserterInstance>();
                     clipboard.machineRecipes.Add(inserter.filterType);
+                    Debug.Log($"inserter.filterType: {inserter.filterType}");
                     clipboard.conveyorShapes.Add(0);
                     clipboard.conveyorBuildBackwards.Add(false);
+                    clipboard.conveyorHeights.Add(0);
+                    clipboard.conveyorInputBottoms.Add(false);
+                    clipboard.conveyorTopYawRots.Add(0);
                     clipboard.chestSizes.Add(0);
                     break;
 
@@ -269,6 +298,9 @@ namespace Blueprints
                     clipboard.machineRecipes.Add(0);
                     clipboard.conveyorShapes.Add((int)conveyor.beltShape);
                     clipboard.conveyorBuildBackwards.Add(conveyor.buildBackwards);
+                    clipboard.conveyorHeights.Add(conveyor.verticalHeight);
+                    clipboard.conveyorInputBottoms.Add(conveyor.inputBottom);
+                    clipboard.conveyorTopYawRots.Add(conveyor.topYawRot);
                     clipboard.chestSizes.Add(0);
                     break;
 
@@ -277,6 +309,9 @@ namespace Blueprints
                     clipboard.machineRecipes.Add(0);
                     clipboard.conveyorShapes.Add(0);
                     clipboard.conveyorBuildBackwards.Add(false);
+                    clipboard.conveyorHeights.Add(0);
+                    clipboard.conveyorInputBottoms.Add(false);
+                    clipboard.conveyorTopYawRots.Add(0);
                     clipboard.chestSizes.Add(chest.commonInfo.inventories[0].numSlots);
                     break;
 
@@ -284,6 +319,9 @@ namespace Blueprints
                     clipboard.machineRecipes.Add(0);
                     clipboard.conveyorShapes.Add(0);
                     clipboard.conveyorBuildBackwards.Add(false);
+                    clipboard.conveyorHeights.Add(0);
+                    clipboard.conveyorInputBottoms.Add(false);
+                    clipboard.conveyorTopYawRots.Add(0);
                     clipboard.chestSizes.Add(0);
                     break;
             }
@@ -315,13 +353,15 @@ namespace Blueprints
             int recipe = clipboard.machineRecipes[i];
             int variationIndex = clipboard.machineVariationIndexes[i];
             GridInfo gridInfo = MachinePaster.getNewGridInfo(MachinePaster.rotatedRelativePositions, i, yawRotation, id, variationIndex);
-            ConveyorInstance.BeltShape beltShape = (ConveyorInstance.BeltShape)clipboard.conveyorShapes[i];
             bool buildBeltBackwards = clipboard.conveyorBuildBackwards[i];
             ChainData chainData = new ChainData() {
                 count = 1,
-                shape = beltShape,
+                height = clipboard.conveyorHeights[i],
+                shape = (ConveyorInstance.BeltShape)clipboard.conveyorShapes[i],
                 rotation = gridInfo.yawRot,
-                start = gridInfo.minPos
+                start = gridInfo.minPos,
+                inputBottom = clipboard.conveyorInputBottoms[i],
+                topYawRot = clipboard.conveyorTopYawRots[i]
             };
 
             if (debugFunction) {
@@ -331,8 +371,8 @@ namespace Blueprints
                 Debug.Log($"yawRotation: {yawRotation}");
                 Debug.Log($"recipe: {recipe}");
                 Debug.Log($"gridInfo.minPos: {gridInfo.minPos}");
-                Debug.Log($"beltShape: {beltShape}");
                 Debug.Log($"buildBackwards: {buildBeltBackwards}");
+                Debug.Log($"chainData: {JsonConvert.SerializeObject(chainData)}");
             }
 
             switch (type) {
@@ -351,28 +391,26 @@ namespace Blueprints
                 case MachineTypeEnum.TransitDepot:
                 case MachineTypeEnum.TransitPole:
                 case MachineTypeEnum.VoltageStepper:
-                    Debug.Log($"Building Machine");
-                    ModUtils.BuildMachine(resID, gridInfo);
+                    ModUtils.BuildMachine(resID, gridInfo, false);
                     break;
 
                 case MachineTypeEnum.Structure:
-                    Debug.Log($"Building Structure");
-                    ModUtils.BuildMachine(resID, gridInfo, true, variationIndex); 
+                    ModUtils.BuildMachine(resID, gridInfo, false, variationIndex); 
                     break;
 
                 case MachineTypeEnum.Assembler:
                 case MachineTypeEnum.Inserter:
-                    Debug.Log($"Building With Recipe");
-                    ModUtils.BuildMachine(resID, gridInfo, true, -1, recipe); break;
+                    ModUtils.BuildMachine(resID, gridInfo, false, -1, recipe); break;
 
                 case MachineTypeEnum.Conveyor:
-                    Debug.Log($"Building Conveyor");
-                    ModUtils.BuildMachine(resID, gridInfo, true, -1, -1, chainData, buildBeltBackwards); break;
+                    ModUtils.BuildMachine(resID, gridInfo, false, -1, -1, chainData, buildBeltBackwards); break;
 
                 default:
                     Debug.Log($"Unsupported Machine type");
                     break;
             }
+
+            sSinceLastBuild = 0;
         }
     }
 }
