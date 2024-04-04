@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using UnityEngine;
 using static ConveyorBuildInfo;
 
@@ -77,7 +78,7 @@ namespace Blueprints
         public static Blueprint clipboard = null;
         public static List<IMachineInstanceRef> machinesToCopy = new List<IMachineInstanceRef>();
         public static List<int> machinesToBuild = new List<int>();
-
+        
         // Unity Functions
 
         private void Awake() {
@@ -90,18 +91,18 @@ namespace Blueprints
             Logger.LogInfo($"PluginName: {PluginName}, VersionString: {VersionString} is loaded.");
             Log = Logger;
 
-            UI.start();
+            BlueprintsLibrary.start();
         }
 
         private void Update() {
             handleInput();
 
-            if (File.Exists(UI.resumeFile)) {
-                File.Delete(UI.resumeFile);
+            if (File.Exists(BlueprintsLibrary.resumeFile)) {
+                File.Delete(BlueprintsLibrary.resumeFile);
                 UIManager.instance.pauseMenu.Close();
 
-                if (File.Exists(UI.pasteFile)) {
-                    File.Delete(UI.pasteFile);
+                if (File.Exists(BlueprintsLibrary.pasteFile)) {
+                    File.Delete(BlueprintsLibrary.pasteFile);
                     MachinePaster.startPasting();
                 }
             }
@@ -136,6 +137,12 @@ namespace Blueprints
             }
         }
 
+        private void OnGUI() {
+            if (BuildQueue.shouldShowBuildQueue) {
+                BuildQueue.ShowBuildQueue();
+            }
+        }
+
         // Public Functions
 
         public static void Notify(string message) {
@@ -144,12 +151,12 @@ namespace Blueprints
         }
 
         public static void saveClipboardToFile() {
-            File.WriteAllText(UI.currentBlueprintFile, clipboard.toJson());
+            File.WriteAllText(BlueprintsLibrary.currentBlueprintFile, clipboard.toJson());
         }
 
         public static void loadFileToClipboard() {
-            if (!File.Exists(UI.currentBlueprintFile)) return;
-            string json = File.ReadAllText(UI.currentBlueprintFile);
+            if (!File.Exists(BlueprintsLibrary.currentBlueprintFile)) return;
+            string json = File.ReadAllText(BlueprintsLibrary.currentBlueprintFile);
             clipboard = JsonConvert.DeserializeObject<Blueprint>(json);
             clipboard.setSize(clipboard.size.asUnityVector3());
 
@@ -216,7 +223,7 @@ namespace Blueprints
         }
 
         private void handleInput() {
-            if (copyShortcut.Value.IsDown() && !UI.isOpen && !MachinePaster.isPasting) {
+            if (copyShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen && !MachinePaster.isPasting) {
                 if (!MachineCopier.isCopying) {
                     MachineCopier.startCopying();
                 }
@@ -225,7 +232,7 @@ namespace Blueprints
                 }
             }
 
-            if (pasteShortcut.Value.IsDown() && !UI.isOpen && !MachineCopier.isCopying) {
+            if (pasteShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen && !MachineCopier.isCopying) {
                 if (!MachinePaster.isPasting) {
                     MachinePaster.startPasting();
                 }
@@ -234,12 +241,12 @@ namespace Blueprints
                 }
             }
 
-            if (lockPositionShortcut.Value.IsDown() && !UI.isOpen && MachinePaster.isPasting) {
+            if (lockPositionShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen && MachinePaster.isPasting) {
                 MachinePaster.isPositionLocked = !MachinePaster.isPositionLocked;
             }
 
-            if (blueprintsShortcut.Value.IsDown() && !UI.isOpen) {
-                UI.show();
+            if (blueprintsShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen) {
+                BlueprintsLibrary.show();
             }
         }
 

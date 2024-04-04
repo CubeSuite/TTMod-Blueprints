@@ -69,9 +69,17 @@
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>D:\ steam\steamapps\common\Techtonica\Techtonica_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.IMGUIModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>D:\ steam\steamapps\common\Techtonica\Techtonica_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.PhysicsModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>D:\ steam\steamapps\common\Techtonica\Techtonica_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>D:\ steam\steamapps\common\Techtonica\Techtonica_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>D:\ steam\steamapps\common\Techtonica\Techtonica_Data\Managed\UnityEngine.UI.dll</HintPath>
@@ -85,12 +93,13 @@
     <Compile Include="AimingHelper.cs" />
     <Compile Include="Blueprint.cs" />
     <Compile Include="BlueprintsPlugin.cs" />
+    <Compile Include="BuildQueue.cs" />
     <Compile Include="MachineCopier.cs" />
     <Compile Include="MachinePaster.cs" />
     <Compile Include="Patches\PauseMenuPatch.cs" />
     <Compile Include="Patches\PlayerInspectorPatch.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="UI.cs" />
+    <Compile Include="BlueprintsLibrary.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

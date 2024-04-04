@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Blueprints
 {
-    public static class UI
+    public static class BlueprintsLibrary
     {
         // Objects & Variables
         public static string dataFolder = $"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\\TechtonicaBlueprintsData";

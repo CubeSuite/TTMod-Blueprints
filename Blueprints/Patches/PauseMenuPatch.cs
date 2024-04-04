@@ -13,7 +13,7 @@ namespace Blueprints.Patches
         [HarmonyPatch(typeof(PauseMenu), "Close")]
         [HarmonyPrefix]
         static void markUIClosed() {
-            UI.isOpen = false;
+            BlueprintsLibrary.isOpen = false;
         }
     }
 }

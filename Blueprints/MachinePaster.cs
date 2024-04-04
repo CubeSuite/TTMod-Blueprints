@@ -84,11 +84,11 @@ namespace Blueprints
                 holograms[i].SetTransform(newLocation, Quaternion.Euler(0, newYaw, 0));
             }
 
-            if (BlueprintsPlugin.cwRotateShortcut.Value.IsDown() && !UI.isOpen) {
+            if (BlueprintsPlugin.cwRotateShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen) {
                 clipboard.rotateCW();
                 rotatedRelativePositions = clipboard.getMachineRelativePositions();
             }
-            else if (BlueprintsPlugin.ccwRotateShortcut.Value.IsDown() && !UI.isOpen) {
+            else if (BlueprintsPlugin.ccwRotateShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen) {
                 clipboard.rotateCCW();
                 rotatedRelativePositions = clipboard.getMachineRelativePositions();
             }
@@ -101,6 +101,24 @@ namespace Blueprints
 
             for(int i  = 0; i < clipboard.machineIDs.Count; i++) {
                 BlueprintsPlugin.machinesToBuild.Add(i);
+
+                BuildQueue.queuedBuildings.Add(new QueuedBuilding() {
+                    machineID = clipboard.machineIDs[i],
+                    index = clipboard.machineIndexes[i],
+                    resID = clipboard.machineResIDs[i],
+                    type = clipboard.machineTypes[i],
+                    rotation = clipboard.machineTypes[i],
+                    recipe = clipboard.machineRecipes[i],
+                    variationIndex = clipboard.machineVariationIndexes[i],
+                    dimensions = clipboard.machineDimensions[i],
+                    conveyorShape = clipboard.conveyorShapes[i],
+                    conveyorBuildBackwards = clipboard.conveyorBuildBackwards[i],
+                    conveyorHeight = clipboard.conveyorHeights[i],
+                    conveyorInputBottom = clipboard.conveyorInputBottoms[i],
+                    conveyorTopYawRot = clipboard.conveyorTopYawRots[i],
+                    chestSize = clipboard.chestSizes[i],
+                    relativePosition = rotatedRelativePositions[i]
+                });
             }
         }
 
