@@ -45,8 +45,6 @@ namespace Blueprints
                 return;
             }
 
-            if (!checkInventory()) return;
-
             rotatedRelativePositions = clipboard.getMachineRelativePositions();
             isPasting = true;
             nudgeOffset = Vector3.zero;
@@ -82,6 +80,10 @@ namespace Blueprints
                 if (newYaw < 0) newYaw += 360;
 
                 holograms[i].SetTransform(newLocation, Quaternion.Euler(0, newYaw, 0));
+
+                if (holograms[i] is ConveyorHologramData conveyorHologram) {
+                    conveyorHologram.topYawRot = clipboard.conveyorTopYawRots[i] + clipboard.rotation * 90;
+                }
             }
 
             if (BlueprintsPlugin.cwRotateShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen) {
@@ -96,12 +98,10 @@ namespace Blueprints
 
         public static void endPasting() {
             isPasting = false;
-            // hideHolograms();
             finalAimLocation = AimingHelper.getAimedLocationForPasting();
 
             for(int i  = 0; i < clipboard.machineIDs.Count; i++) {
-                BlueprintsPlugin.machinesToBuild.Add(i);
-
+                BuildQueue.holograms.Add(holograms[i]);
                 BuildQueue.queuedBuildings.Add(new QueuedBuilding() {
                     machineID = clipboard.machineIDs[i],
                     index = clipboard.machineIndexes[i],
@@ -115,11 +115,14 @@ namespace Blueprints
                     conveyorBuildBackwards = clipboard.conveyorBuildBackwards[i],
                     conveyorHeight = clipboard.conveyorHeights[i],
                     conveyorInputBottom = clipboard.conveyorInputBottoms[i],
-                    conveyorTopYawRot = clipboard.conveyorTopYawRots[i],
+                    conveyorTopYawRot = clipboard.conveyorTopYawRots[i] + clipboard.rotation * 90,
                     chestSize = clipboard.chestSizes[i],
-                    relativePosition = rotatedRelativePositions[i]
+                    gridInfo = getNewGridInfo(rotatedRelativePositions, i, clipboard.machineRotations[i], clipboard.machineIDs[i], clipboard.machineVariationIndexes[i])
                 });
             }
+
+            holograms.Clear();
+            postPaste();
         }
 
         public static GridInfo getNewGridInfo(List<Vector3> rotatedRelativePositions, int index, int yawRotation, uint id, int variationIndex) {
@@ -182,13 +185,6 @@ namespace Blueprints
             clipboard.clearMachineRotations();
         }
 
-        public static void hideFirstHologram() {
-            if(holograms.Count > 0) {
-                holograms[0].AbandonHologramPreview();
-                holograms.RemoveAt(0);
-            }
-        }
-
         public static void hideHolograms() {
             foreach (StreamedHologramData hologram in holograms) {
                 hologram.AbandonHologramPreview();
@@ -198,19 +194,6 @@ namespace Blueprints
         }
 
         // Private Functions
-
-        private static bool checkInventory() {
-            bool hasResources = true;
-            foreach (MachineCost cost in clipboard.getCost()) {
-                ResourceInfo info = SaveState.GetResInfoFromId(cost.resId);
-                if (!Player.instance.inventory.myInv.HasResources(info, cost.count)) {
-                    BlueprintsPlugin.Notify($"Not enough {info.displayName} {Player.instance.inventory.myInv.GetResourceCount(cost.resId)}/{cost.count}");
-                    hasResources = false;
-                }
-            }
-
-            return hasResources;
-        }
 
         private static void renderHolograms() {
             bool debugFunction = false;
@@ -259,6 +242,7 @@ namespace Blueprints
                         conveyorHologram.numBelts = clipboard.conveyorHeights[i];
                         conveyorHologram.verticalHeight = clipboard.conveyorHeights[i];
                         conveyorHologram.inputBottom = clipboard.conveyorInputBottoms[i];
+                        conveyorHologram.topYawRot = clipboard.conveyorTopYawRots[i] + (clipboard.rotation * 90);
                     }
 
                     yawRotation = clipboard.machineRotations[i];

@@ -1,9 +1,12 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Blueprints
 {
@@ -12,7 +15,9 @@ namespace Blueprints
         // Objects & Variables
 
         public static bool shouldShowBuildQueue => queuedBuildings.Count != 0;
+        
         public static List<QueuedBuilding> queuedBuildings = new List<QueuedBuilding>();
+        public static List<StreamedHologramData> holograms = new List<StreamedHologramData>();
 
         // Public Functions
 
@@ -25,38 +30,48 @@ namespace Blueprints
             GUIStyle titleStyle = new GUIStyle(GUI.skin.window) {
                 fontSize = 16,
                 alignment = TextAnchor.UpperCenter,
-
+                normal = { textColor  = Color.yellow }
             };
 
-            GUI.backgroundColor = new Color32(22, 22, 38, 192);
+            GUI.backgroundColor = new Color32(22, 22, 38, 255);
             GUI.Window(0, new Rect(x, y, windowWidth, windowHeight), null, "Build Queue", titleStyle);
 
-            int maxNameLength = GetItemNamePadding();
-            string title = "Item".PadRight(maxNameLength) + " Have / Need\n";
-            StringBuilder queueLabel = new StringBuilder(title);
+            StringBuilder namesLabel = new StringBuilder("Item\n");
+            StringBuilder numbersLabel = new StringBuilder("Have / Need\n");
 
             List<int> doneResIDs = new List<int>();
             foreach (QueuedBuilding building in queuedBuildings) {
                 if (doneResIDs.Contains(building.resID)) continue;
-                string have = Player.instance.inventory.GetResourceCount(building.resID).ToString().PadRight(4);
-                string need = queuedBuildings.Where(machine => machine.resID == building.resID).Count().ToString().PadRight(4);
-                queueLabel.AppendLine($"{SaveState.GetResInfoFromId(building.resID).displayName.PadRight(maxNameLength)} {have} / {need}");
+
+                namesLabel.AppendLine(SaveState.GetResInfoFromId(building.resID).displayName);
+                numbersLabel.AppendLine(GetItemHaveNeed(building.resID));
+
                 doneResIDs.Add(building.resID);
             }
 
-            GUI.Box(new Rect(x, y + 20, windowWidth, windowHeight), queueLabel.ToString());
+            GUIStyle namesStyle = new GUIStyle(GUI.skin.box) {
+                alignment = TextAnchor.UpperLeft,
+                normal = { textColor = Color.yellow, background = null }
+            };
+
+            GUIStyle numbersStyle = new GUIStyle(GUI.skin.box) {
+                alignment = TextAnchor.UpperRight,
+                normal = { textColor = Color.white, background = null },
+            };
+
+            GUI.Box(new Rect(x, y + 20, windowWidth, windowHeight - 20), namesLabel.ToString(), namesStyle);
+            GUI.Box(new Rect(x + 220, y + 20, windowWidth - 220, windowHeight - 20), numbersLabel.ToString(), numbersStyle);
+        }
+
+        public static void HideHologram(int index) {
+            holograms[index].AbandonHologramPreview();
+            holograms.RemoveAt(index);
         }
 
         // Private Functions
 
-        private static int GetItemNamePadding() {
-            int max = 0;
-            foreach(QueuedBuilding building in queuedBuildings) {
-                int length = SaveState.GetResInfoFromId(building.resID).displayName.Length;
-                if (length > max) max = length;
-            }
-
-            return Math.Max(max, 50);
+        private static string GetItemHaveNeed(int resID) {
+            return $"{Player.instance.inventory.GetResourceCount(resID)} / {queuedBuildings.Where(machine => machine.resID == resID).Count()}";
         }
     }
 
@@ -76,6 +91,6 @@ namespace Blueprints
         public bool conveyorInputBottom;
         public int conveyorTopYawRot;
         public int chestSize;
-        public Vector3 relativePosition;
+        public GridInfo gridInfo;
     }
 }
