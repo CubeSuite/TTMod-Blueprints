@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using UnityEngine;
 using static ConveyorBuildInfo;
 
@@ -20,7 +21,7 @@ namespace Blueprints
     {
         private const string MyGUID = "com.equinox.Blueprints";
         private const string PluginName = "Blueprints";
-        private const string VersionString = "2.0.0";
+        private const string VersionString = "2.1.0";
 
         private static readonly Harmony Harmony = new Harmony(MyGUID);
         public static ManualLogSource Log = new ManualLogSource(PluginName);
@@ -76,8 +77,7 @@ namespace Blueprints
         // Objects & Variables
         public static Blueprint clipboard = null;
         public static List<IMachineInstanceRef> machinesToCopy = new List<IMachineInstanceRef>();
-        public static List<int> machinesToBuild = new List<int>();
-
+        
         // Unity Functions
 
         private void Awake() {
@@ -90,18 +90,18 @@ namespace Blueprints
             Logger.LogInfo($"PluginName: {PluginName}, VersionString: {VersionString} is loaded.");
             Log = Logger;
 
-            UI.start();
+            BlueprintsLibrary.start();
         }
 
         private void Update() {
             handleInput();
 
-            if (File.Exists(UI.resumeFile)) {
-                File.Delete(UI.resumeFile);
+            if (File.Exists(BlueprintsLibrary.resumeFile)) {
+                File.Delete(BlueprintsLibrary.resumeFile);
                 UIManager.instance.pauseMenu.Close();
 
-                if (File.Exists(UI.pasteFile)) {
-                    File.Delete(UI.pasteFile);
+                if (File.Exists(BlueprintsLibrary.pasteFile)) {
+                    File.Delete(BlueprintsLibrary.pasteFile);
                     MachinePaster.startPasting();
                 }
             }
@@ -123,16 +123,25 @@ namespace Blueprints
             }
 
             sSinceLastBuild += Time.deltaTime;
-            if(machinesToBuild.Count != 0 && sSinceLastBuild > 0.1) {
-                int index = machinesToBuild[0];
-                buildMachineAtIndex(index);
-                machinesToBuild.RemoveAt(0);
-                sSinceLastBuild = 0;
-                MachinePaster.hideFirstHologram();
-                if (machinesToBuild.Count == 0) {
-                    Notify("Finished pasting");
-                    MachinePaster.postPaste();
+            for(int i = 0; i < BuildQueue.queuedBuildings.Count; i++) {
+                if (shouldBuild(i)) {
+                    BuildQueue.HideHologram(i);
+
+                    List<Vector3Int> invalidCoords = new List<Vector3Int>();
+                    if (GridManager.instance.CheckBuildableAt(BuildQueue.queuedBuildings[i].gridInfo, out invalidCoords)) {
+                        buildBuilding(BuildQueue.queuedBuildings[i]);
+                    }
+                    
+                    BuildQueue.queuedBuildings.RemoveAt(i);
+                    sSinceLastBuild = 0;
+                    break;
                 }
+            }
+        }
+
+        private void OnGUI() {
+            if (BuildQueue.shouldShowBuildQueue) {
+                BuildQueue.ShowBuildQueue();
             }
         }
 
@@ -144,12 +153,12 @@ namespace Blueprints
         }
 
         public static void saveClipboardToFile() {
-            File.WriteAllText(UI.currentBlueprintFile, clipboard.toJson());
+            File.WriteAllText(BlueprintsLibrary.currentBlueprintFile, clipboard.toJson());
         }
 
         public static void loadFileToClipboard() {
-            if (!File.Exists(UI.currentBlueprintFile)) return;
-            string json = File.ReadAllText(UI.currentBlueprintFile);
+            if (!File.Exists(BlueprintsLibrary.currentBlueprintFile)) return;
+            string json = File.ReadAllText(BlueprintsLibrary.currentBlueprintFile);
             clipboard = JsonConvert.DeserializeObject<Blueprint>(json);
             clipboard.setSize(clipboard.size.asUnityVector3());
 
@@ -216,7 +225,7 @@ namespace Blueprints
         }
 
         private void handleInput() {
-            if (copyShortcut.Value.IsDown() && !UI.isOpen && !MachinePaster.isPasting) {
+            if (copyShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen && !MachinePaster.isPasting) {
                 if (!MachineCopier.isCopying) {
                     MachineCopier.startCopying();
                 }
@@ -225,7 +234,7 @@ namespace Blueprints
                 }
             }
 
-            if (pasteShortcut.Value.IsDown() && !UI.isOpen && !MachineCopier.isCopying) {
+            if (pasteShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen && !MachineCopier.isCopying) {
                 if (!MachinePaster.isPasting) {
                     MachinePaster.startPasting();
                 }
@@ -234,12 +243,12 @@ namespace Blueprints
                 }
             }
 
-            if (lockPositionShortcut.Value.IsDown() && !UI.isOpen && MachinePaster.isPasting) {
+            if (lockPositionShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen && MachinePaster.isPasting) {
                 MachinePaster.isPositionLocked = !MachinePaster.isPositionLocked;
             }
 
-            if (blueprintsShortcut.Value.IsDown() && !UI.isOpen) {
-                UI.show();
+            if (blueprintsShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen) {
+                BlueprintsLibrary.show();
             }
         }
 
@@ -284,7 +293,6 @@ namespace Blueprints
                 case MachineTypeEnum.Inserter:
                     InserterInstance inserter = generic.Get<InserterInstance>();
                     clipboard.machineRecipes.Add(inserter.filterType);
-                    Debug.Log($"inserter.filterType: {inserter.filterType}");
                     clipboard.conveyorShapes.Add(0);
                     clipboard.conveyorBuildBackwards.Add(false);
                     clipboard.conveyorHeights.Add(0);
@@ -343,35 +351,34 @@ namespace Blueprints
             }
         }
 
-        private void buildMachineAtIndex(int i) {
-            bool debugFunction = false;
+        private bool shouldBuild(int index) {
+            ResourceInfo info = SaveState.GetResInfoFromId(BuildQueue.queuedBuildings[index].resID);
+            return sSinceLastBuild > 0.25 &&
+                   Player.instance.inventory.HasResources(info, 1);
+        }
 
-            uint id = clipboard.machineIDs[i];
-            int resID = clipboard.machineResIDs[i];
-            MachineTypeEnum type = (MachineTypeEnum)clipboard.machineTypes[i];
-            int yawRotation = clipboard.machineRotations[i];
-            int recipe = clipboard.machineRecipes[i];
-            int variationIndex = clipboard.machineVariationIndexes[i];
-            GridInfo gridInfo = MachinePaster.getNewGridInfo(MachinePaster.rotatedRelativePositions, i, yawRotation, id, variationIndex);
-            bool buildBeltBackwards = clipboard.conveyorBuildBackwards[i];
+        private void buildBuilding(QueuedBuilding building) {
+            bool debugFunction = false;
+            MachineTypeEnum type = (MachineTypeEnum)building.type;
+            GridInfo gridInfo = building.gridInfo;
             ChainData chainData = new ChainData() {
                 count = 1,
-                height = clipboard.conveyorHeights[i],
-                shape = (ConveyorInstance.BeltShape)clipboard.conveyorShapes[i],
+                height = building.conveyorHeight,
+                shape = (ConveyorInstance.BeltShape)building.conveyorShape,
                 rotation = gridInfo.yawRot,
                 start = gridInfo.minPos,
-                inputBottom = clipboard.conveyorInputBottoms[i],
-                topYawRot = clipboard.conveyorTopYawRots[i]
+                inputBottom = building.conveyorInputBottom,
+                topYawRot = building.conveyorTopYawRot
             };
 
             if (debugFunction) {
-                Debug.Log($"id: {id}");
-                Debug.Log($"resID: {resID}");
+                Debug.Log($"id: {building.machineID}");
+                Debug.Log($"resID: {building.resID}");
                 Debug.Log($"type: {type}");
-                Debug.Log($"yawRotation: {yawRotation}");
-                Debug.Log($"recipe: {recipe}");
+                Debug.Log($"yawRotation: {gridInfo.yawRot}");
+                Debug.Log($"recipe: {building.recipe}");
                 Debug.Log($"gridInfo.minPos: {gridInfo.minPos}");
-                Debug.Log($"buildBackwards: {buildBeltBackwards}");
+                Debug.Log($"buildBackwards: {building.conveyorBuildBackwards}");
                 Debug.Log($"chainData: {JsonConvert.SerializeObject(chainData)}");
             }
 
@@ -391,19 +398,19 @@ namespace Blueprints
                 case MachineTypeEnum.TransitDepot:
                 case MachineTypeEnum.TransitPole:
                 case MachineTypeEnum.VoltageStepper:
-                    ModUtils.BuildMachine(resID, gridInfo, false);
+                    ModUtils.BuildMachine(building.resID, gridInfo, false);
                     break;
 
                 case MachineTypeEnum.Structure:
-                    ModUtils.BuildMachine(resID, gridInfo, false, variationIndex); 
+                    ModUtils.BuildMachine(building.resID, gridInfo, false, building.variationIndex);
                     break;
 
                 case MachineTypeEnum.Assembler:
                 case MachineTypeEnum.Inserter:
-                    ModUtils.BuildMachine(resID, gridInfo, false, -1, recipe); break;
+                    ModUtils.BuildMachine(building.resID, gridInfo, false, -1, building.recipe); break;
 
                 case MachineTypeEnum.Conveyor:
-                    ModUtils.BuildMachine(resID, gridInfo, false, -1, -1, chainData, buildBeltBackwards); break;
+                    ModUtils.BuildMachine(building.resID, gridInfo, false, -1, -1, chainData, building.conveyorBuildBackwards); break;
 
                 default:
                     Debug.Log($"Unsupported Machine type");
