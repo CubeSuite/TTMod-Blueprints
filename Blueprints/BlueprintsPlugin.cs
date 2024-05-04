@@ -21,7 +21,7 @@ namespace Blueprints
     {
         private const string MyGUID = "com.equinox.Blueprints";
         private const string PluginName = "Blueprints";
-        private const string VersionString = "2.1.0";
+        private const string VersionString = "2.1.1";
 
         private static readonly Harmony Harmony = new Harmony(MyGUID);
         public static ManualLogSource Log = new ManualLogSource(PluginName);
@@ -137,6 +137,10 @@ namespace Blueprints
                     break;
                 }
             }
+
+            if(BuildQueue.queuedBuildings.Count == 0 && BuildQueue.holograms.Count != 0) {
+                BuildQueue.ClearHolograms();
+            }
         }
 
         private void OnGUI() {
@@ -220,8 +224,10 @@ namespace Blueprints
         }
 
         private void applyPatches() {
-            Harmony.CreateAndPatchAll(typeof(PlayerInspectorPatch));
             Harmony.CreateAndPatchAll(typeof(PauseMenuPatch));
+            Harmony.CreateAndPatchAll(typeof(PlayerBuilderPatch));
+            Harmony.CreateAndPatchAll(typeof(PlayerInspectorPatch));
+            Harmony.CreateAndPatchAll(typeof(PlayerInteractionPatch));
         }
 
         private void handleInput() {
