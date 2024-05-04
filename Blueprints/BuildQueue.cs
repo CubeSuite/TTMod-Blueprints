@@ -68,6 +68,14 @@ namespace Blueprints
             holograms.RemoveAt(index);
         }
 
+        public static void ClearHolograms() {
+            foreach(StreamedHologramData hologram in holograms) {
+                hologram.AbandonHologramPreview();
+            }
+
+            holograms.Clear();
+        }
+
         // Private Functions
 
         private static string GetItemHaveNeed(int resID) {
