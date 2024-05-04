@@ -359,7 +359,7 @@ namespace Blueprints
 
         private bool shouldBuild(int index) {
             ResourceInfo info = SaveState.GetResInfoFromId(BuildQueue.queuedBuildings[index].resID);
-            return sSinceLastBuild > 0.25 &&
+            return sSinceLastBuild > /*0.25*/ 0 &&
                    Player.instance.inventory.HasResources(info, 1);
         }
 
