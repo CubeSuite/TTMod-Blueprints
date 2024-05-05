@@ -1,5 +1,4 @@
 ﻿using JetBrains.Annotations;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,21 +6,25 @@ using System.Linq;
 using System.Management.Instrumentation;
 using System.Reflection;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Search;
 using static Voxeland5.CustomSerialization;
 
 namespace Blueprints
 {
+    [Serializable]
     public class Blueprint
     {
-        public int id;
+        public int id = -1;
+        public int parentId;
         public string name;
         public MyVector3 size;
-        public MyVector3 anchorPoint;
+        //public MyVector3 anchorPoint;
         public int rotation = 0;
         public List<uint> machineIDs = new List<uint>();
         public List<int> machineIndexes = new List<int>();
@@ -49,8 +52,8 @@ namespace Blueprints
 
         // Public Functions
 
-        public string toJson(bool formatted = false) {
-            return JsonConvert.SerializeObject(this);
+        public string ToJson(bool formatted = false) {
+            return JsonUtility.ToJson(this, formatted);
         }
 
         public List<MachineCost> getCost() {
@@ -208,6 +211,7 @@ namespace Blueprints
         }
     }
 
+    [Serializable]
     public struct MachineCost {
         public int resId;
         public int count;
@@ -218,8 +222,18 @@ namespace Blueprints
         }
     }
 
+    [Serializable]
+    public class MyVector3List {
+        public List<MyVector3> list = new List<MyVector3>();
+    }
+
+    [Serializable]
     public class MyVector3 {
-        public float x, y, z;
+        public float x;
+        public float y;
+        public float z;
+
+        // Constructors
 
         public MyVector3(){}
         public MyVector3(Vector3 unityVector) {
@@ -233,6 +247,8 @@ namespace Blueprints
             y = unityVector.y;
             z = unityVector.z;
         }
+
+        // Public Functions
 
         public override string ToString() {
             return $"({x},{y},{z})";

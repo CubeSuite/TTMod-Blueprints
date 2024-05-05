@@ -1,5 +1,4 @@
 ﻿using FIMSpace.GroundFitter;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -25,11 +24,9 @@ namespace Blueprints
         private static Vector3 copyRegionMinExpansion;
         private static Vector3 copyRegionMaxExpansion;
 
-        // ToDo: Check if machine is compatible with EMU when building
-
         // Public Functions
 
-        public static void startCopying() {
+        public static void StartCopying() {
             bool debugFunction = false;
 
             Vector3? startPosResult = AimingHelper.getLookedAtMachinePos();
@@ -43,14 +40,14 @@ namespace Blueprints
 
             if (debugFunction) Debug.Log($"startCopying() copyRegionStart: {copyRegionStart}");
 
-            initialiseCopying();
-            getAndShowDisplayBox();
+            InitialiseCopying();
+            GetAndShowDisplayBox();
         }
 
-        public static void updateEndPosition() {
+        public static void UpdateEndPosition() {
             bool debugFunction = false;
             
-            if (BlueprintsPlugin.cancelShortcut.Value.IsDown()) cancelCopying(true);
+            if (BlueprintsPlugin.cancelShortcut.Value.IsDown()) CancelCopying(true);
 
             Vector3? currentEndPosResult = AimingHelper.getLookedAtMachinePos();
             if (currentEndPosResult == null) return;
@@ -64,16 +61,16 @@ namespace Blueprints
 
             if (debugFunction) Debug.Log($"updateEndPosition() size: {size}");
 
-            HashSet<GenericMachineInstanceRef> machines = getMachineRefsInBounds();
+            HashSet<GenericMachineInstanceRef> machines = GetMachineRefsInBounds();
             foreach (GenericMachineInstanceRef machine in machines) {
                 copyRegionBounds.EncapsulateMachine(machine);
             }
 
-            updateExpansion();
-            updateDisplayBox();
+            UpdateExpansion();
+            UpdateDisplayBox();
         }
 
-        public static void endCopying() {
+        public static void EndCopying() {
             bool debugFunction = false;
             
             Vector3? endPosResult = AimingHelper.getLookedAtMachinePos();
@@ -83,11 +80,11 @@ namespace Blueprints
             }
 
             copyRegionEnd = (Vector3)endPosResult;
-            cancelCopying(false);
+            CancelCopying(false);
 
             if (debugFunction) Debug.Log($"endCopying() copyRegionEnd: {copyRegionEnd}");
 
-            Vector3 size = getFinalCopyRegionValues();
+            Vector3 size = GetFinalCopyRegionValues();
 
             if (debugFunction) Debug.Log($"endCopying() size: {size}");
 
@@ -95,7 +92,7 @@ namespace Blueprints
             blueprint.setSize(size);
             BlueprintsPlugin.clipboard = blueprint;
 
-            HashSet<IMachineInstanceRef> machines = getMachinesToCopy();
+            HashSet<IMachineInstanceRef> machines = GetMachinesToCopy();
             foreach (IMachineInstanceRef machine in machines) {
                 BlueprintsPlugin.machinesToCopy.Add(machine);
                 Vector3 relativePosition = machine.GetGridInfo().BottomCenter - copyRegionAnchor;
@@ -108,14 +105,14 @@ namespace Blueprints
 
         // Private Functions
 
-        private static void initialiseCopying() {
+        private static void InitialiseCopying() {
             copyRegionMinExpansion = new Vector3();
             copyRegionMaxExpansion = new Vector3();
             copyRegionBounds = new Bounds(copyRegionStart, Vector3.zero);
             isCopying = true;
         }
 
-        private static void getAndShowDisplayBox() {
+        private static void GetAndShowDisplayBox() {
             if(copyRegionDisplayBox == null) {
                 FieldInfo takeResourcesBoxInfo = Player.instance.interaction.GetType().GetField("takeResourcesBox", BindingFlags.Instance | BindingFlags.NonPublic);
                 GameObject takeResourcesBox = (GameObject)takeResourcesBoxInfo.GetValue(Player.instance.interaction);
@@ -123,16 +120,16 @@ namespace Blueprints
             }
             
             copyRegionDisplayBox.SetActive(true);
-            updateDisplayBox();
+            UpdateDisplayBox();
         }
 
-        private static void cancelCopying(bool notify) {
+        private static void CancelCopying(bool notify) {
             isCopying = false;
             copyRegionDisplayBox.SetActive(false);
             if(notify) BlueprintsPlugin.Notify("Canceled copying");
         }
 
-        private static void updateExpansion() {
+        private static void UpdateExpansion() {
             Vector3 camFacing = Player.instance.cam.transform.forward;
             Vector3 expansionDirection = Vector3.zero;
 
@@ -197,13 +194,13 @@ namespace Blueprints
             copyRegionBounds.SetMinMax(copyRegionBounds.min + copyRegionMinExpansion, copyRegionBounds.max + copyRegionMaxExpansion);
         }
 
-        private static void updateDisplayBox() {
+        private static void UpdateDisplayBox() {
             copyRegionDisplayBox.transform.localScale = copyRegionBounds.size;
             copyRegionDisplayBox.transform.position = copyRegionBounds.min;
             copyRegionDisplayBox.transform.rotation = Quaternion.identity;
         }
 
-        private static Vector3 getFinalCopyRegionValues() {
+        private static Vector3 GetFinalCopyRegionValues() {
             Vector3 size = copyRegionEnd - copyRegionStart;
             copyRegionBounds.Encapsulate(copyRegionStart + size);
 
@@ -220,7 +217,7 @@ namespace Blueprints
             return size;
         }
 
-        private static HashSet<GenericMachineInstanceRef> getMachineRefsInBounds() {
+        private static HashSet<GenericMachineInstanceRef> GetMachineRefsInBounds() {
             bool debugFunction = false;
             copyRegionBounds.extents -= new Vector3(0.01f, 0.01f, 0.01f);
 
@@ -243,8 +240,8 @@ namespace Blueprints
             return machines;
         }
 
-        private static HashSet<IMachineInstanceRef> getMachinesToCopy() {
-            HashSet<GenericMachineInstanceRef> machineRefs = getMachineRefsInBounds();
+        private static HashSet<IMachineInstanceRef> GetMachinesToCopy() {
+            HashSet<GenericMachineInstanceRef> machineRefs = GetMachineRefsInBounds();
             HashSet<IMachineInstanceRef> machines = new HashSet<IMachineInstanceRef>();
             foreach (GenericMachineInstanceRef machineRef in machineRefs) {
                 if (machineRef.IsValid()) {

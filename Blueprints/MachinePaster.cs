@@ -2,7 +2,6 @@
 using FluffyUnderware.Curvy;
 using FluffyUnderware.Curvy.Generator.Modules;
 using Mirror;
-using Newtonsoft.Json;
 using ProceduralNoiseProject;
 using System;
 using System.Collections.Generic;
@@ -39,7 +38,6 @@ namespace Blueprints
         public static void startPasting() {
             bool debugFunction = false;
 
-            BlueprintsPlugin.loadFileToClipboard();
             if (clipboard == null) {
                 BlueprintsPlugin.Notify("Nothing to paste!");
                 return;
@@ -86,11 +84,12 @@ namespace Blueprints
                 }
             }
 
-            if (BlueprintsPlugin.cwRotateShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen) {
+            // ToDo: Test UIManager.instance.anyMenuOpen && ModUtils.FreeMouse
+            if (BlueprintsPlugin.cwRotateShortcut.Value.IsDown() && !BlueprintsLibraryGUI.shouldShow) {
                 clipboard.rotateCW();
                 rotatedRelativePositions = clipboard.getMachineRelativePositions();
             }
-            else if (BlueprintsPlugin.ccwRotateShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen) {
+            else if (BlueprintsPlugin.ccwRotateShortcut.Value.IsDown() && !BlueprintsLibraryGUI.shouldShow) {
                 clipboard.rotateCCW();
                 rotatedRelativePositions = clipboard.getMachineRelativePositions();
             }

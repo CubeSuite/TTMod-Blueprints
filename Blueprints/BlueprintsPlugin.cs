@@ -4,7 +4,6 @@ using BepInEx.Logging;
 using Blueprints.Patches;
 using EquinoxsModUtils;
 using HarmonyLib;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Eventing.Reader;
@@ -84,29 +83,25 @@ namespace Blueprints
             Logger.LogInfo($"PluginName: {PluginName}, VersionString: {VersionString} is loading...");
             Harmony.PatchAll();
 
-            bindConfigEntries();
-            applyPatches();
+            BindConfigEntries();
+            ApplyPatches();
+
+            BlueprintsLibraryGUI.LoadTextures();
+            BlueprintManager.LoadData();
+            BookManager.LoadData();
+
+            if(BookManager.GetBookCount() == 0) {
+                BookManager.AddBook(new BlueprintBook() { name = "All Blueprints" });
+            }
 
             Logger.LogInfo($"PluginName: {PluginName}, VersionString: {VersionString} is loaded.");
             Log = Logger;
-
-            BlueprintsLibrary.start();
         }
 
         private void Update() {
-            handleInput();
+            HandleInput();
 
-            if (File.Exists(BlueprintsLibrary.resumeFile)) {
-                File.Delete(BlueprintsLibrary.resumeFile);
-                UIManager.instance.pauseMenu.Close();
-
-                if (File.Exists(BlueprintsLibrary.pasteFile)) {
-                    File.Delete(BlueprintsLibrary.pasteFile);
-                    MachinePaster.startPasting();
-                }
-            }
-
-            if (MachineCopier.isCopying) MachineCopier.updateEndPosition();
+            if (MachineCopier.isCopying) MachineCopier.UpdateEndPosition();
             if (MachinePaster.isPasting) MachinePaster.updateHolograms();
         }
 
@@ -114,22 +109,21 @@ namespace Blueprints
         private void FixedUpdate() {
             if(machinesToCopy.Count != 0) {
                 IMachineInstanceRef machine = machinesToCopy[0];
-                addMachineToBlueprint(machine);
+                AddMachineToBlueprint(machine);
                 machinesToCopy.RemoveAt(0);
                 if(machinesToCopy.Count == 0) {
-                    saveClipboardToFile();
                     Notify("Region copied!");
                 }
             }
 
             sSinceLastBuild += Time.deltaTime;
             for(int i = 0; i < BuildQueue.queuedBuildings.Count; i++) {
-                if (shouldBuild(i)) {
+                if (ShouldBuild(i)) {
                     BuildQueue.HideHologram(i);
 
                     List<Vector3Int> invalidCoords = new List<Vector3Int>();
                     if (GridManager.instance.CheckBuildableAt(BuildQueue.queuedBuildings[i].gridInfo, out invalidCoords)) {
-                        buildBuilding(BuildQueue.queuedBuildings[i]);
+                        BuildBuilding(BuildQueue.queuedBuildings[i]);
                     }
                     
                     BuildQueue.queuedBuildings.RemoveAt(i);
@@ -144,7 +138,10 @@ namespace Blueprints
         }
 
         private void OnGUI() {
-            if (BuildQueue.shouldShowBuildQueue) {
+            if (BlueprintsLibraryGUI.shouldShow) {
+                BlueprintsLibraryGUI.DrawGUI();
+            }
+            else if (BuildQueue.shouldShowBuildQueue) {
                 BuildQueue.ShowBuildQueue();
             }
         }
@@ -156,50 +153,9 @@ namespace Blueprints
             UIManager.instance.systemLog.FlashMessage(message);
         }
 
-        public static void saveClipboardToFile() {
-            File.WriteAllText(BlueprintsLibrary.currentBlueprintFile, clipboard.toJson());
-        }
-
-        public static void loadFileToClipboard() {
-            if (!File.Exists(BlueprintsLibrary.currentBlueprintFile)) return;
-            string json = File.ReadAllText(BlueprintsLibrary.currentBlueprintFile);
-            clipboard = JsonConvert.DeserializeObject<Blueprint>(json);
-            clipboard.setSize(clipboard.size.asUnityVector3());
-
-            if(clipboard.conveyorHeights.Count == 0) {
-                for(int i = 0; i < clipboard.machineIDs.Count; i++) {
-                    clipboard.conveyorHeights.Add(0);
-                }
-            }
-
-            if (clipboard.conveyorInputBottoms.Count == 0) {
-                for (int i = 0; i < clipboard.machineIDs.Count; i++) {
-                    clipboard.conveyorInputBottoms.Add(false);
-                }
-            }
-
-            if (clipboard.conveyorTopYawRots.Count == 0) {
-                for (int i = 0; i < clipboard.machineIDs.Count; i++) {
-                    clipboard.conveyorTopYawRots.Add(0);
-                }
-            }
-
-            if (clipboard.machineVariationIndexes.Count == 0) {
-                for(int i = 0; i < clipboard.machineIDs.Count; i++) {
-                    clipboard.machineVariationIndexes.Add(-1);
-                }
-            }
-
-            if (clipboard.chestSizes.Count == 0) {
-                for (int i = 0; i < clipboard.machineIDs.Count; i++) {
-                    clipboard.chestSizes.Add(0);
-                }
-            }
-        }
-
         // Private Functions
 
-        private void bindConfigEntries() {
+        private void BindConfigEntries() {
             copyShortcut = Config.Bind("General", copyShortcutKey, new KeyboardShortcut(KeyCode.C, KeyCode.LeftControl));
             pasteShortcut = Config.Bind("General", pasteShortcutKey, new KeyboardShortcut(KeyCode.V, KeyCode.LeftControl));
             cancelShortcut = Config.Bind("General", cancelShortcutKey, new KeyboardShortcut(KeyCode.Backspace));
@@ -223,24 +179,23 @@ namespace Blueprints
             shrinkDownShortcut = Config.Bind("Shrink Copy Region", shrinkDownKey, new KeyboardShortcut(KeyCode.DownArrow, KeyCode.LeftShift, KeyCode.LeftControl));
         }
 
-        private void applyPatches() {
-            Harmony.CreateAndPatchAll(typeof(PauseMenuPatch));
+        private void ApplyPatches() {
             Harmony.CreateAndPatchAll(typeof(PlayerBuilderPatch));
             Harmony.CreateAndPatchAll(typeof(PlayerInspectorPatch));
             Harmony.CreateAndPatchAll(typeof(PlayerInteractionPatch));
         }
 
-        private void handleInput() {
-            if (copyShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen && !MachinePaster.isPasting) {
+        private void HandleInput() {
+            if (copyShortcut.Value.IsDown() && !BlueprintsLibraryGUI.shouldShow && !MachinePaster.isPasting) {
                 if (!MachineCopier.isCopying) {
-                    MachineCopier.startCopying();
+                    MachineCopier.StartCopying();
                 }
                 else {
-                    MachineCopier.endCopying();
+                    MachineCopier.EndCopying();
                 }
             }
 
-            if (pasteShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen && !MachineCopier.isCopying) {
+            if (pasteShortcut.Value.IsDown() && !BlueprintsLibraryGUI.shouldShow && !MachineCopier.isCopying) {
                 if (!MachinePaster.isPasting) {
                     MachinePaster.startPasting();
                 }
@@ -249,16 +204,17 @@ namespace Blueprints
                 }
             }
 
-            if (lockPositionShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen && MachinePaster.isPasting) {
-                MachinePaster.isPositionLocked = !MachinePaster.isPositionLocked;
+            if (lockPositionShortcut.Value.IsDown() && !BlueprintsLibraryGUI.shouldShow && MachinePaster.isPasting) {
+                MachinePaster.isPositionLocked = !MachinePaster.isPositionLocked;   
             }
 
-            if (blueprintsShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen) {
-                BlueprintsLibrary.show();
+            if (blueprintsShortcut.Value.IsDown()) {
+                BlueprintsLibraryGUI.shouldShow = !BlueprintsLibraryGUI.shouldShow;
+                ModUtils.FreeCursor(BlueprintsLibraryGUI.shouldShow);
             }
         }
 
-        private void addMachineToBlueprint(IMachineInstanceRef machine) {
+        private void AddMachineToBlueprint(IMachineInstanceRef machine) {
             bool debugFunction = false;
 
             clipboard.machineIDs.Add(machine.instanceId);
@@ -266,7 +222,7 @@ namespace Blueprints
             clipboard.machineResIDs.Add(machine.GetCommonInfo().resId);
             clipboard.machineTypes.Add((int)machine.typeIndex);
             clipboard.machineRotations.Add(machine.GetGridInfo().yawRot);
-            clipboard.machineDimensions.Add(getDimensions(machine));
+            clipboard.machineDimensions.Add(GetDimensions(machine));
             clipboard.machineVariationIndexes.Add(machine.GetCommonInfo().variationIndex);
 
             if (debugFunction) {
@@ -341,7 +297,7 @@ namespace Blueprints
             }
         }
 
-        private MyVector3 getDimensions(IMachineInstanceRef machine) {
+        private MyVector3 GetDimensions(IMachineInstanceRef machine) {
             switch (machine.gridInfo.yawRot) {
                 default:
                 case 0:
@@ -357,13 +313,14 @@ namespace Blueprints
             }
         }
 
-        private bool shouldBuild(int index) {
+        private bool ShouldBuild(int index) {
             ResourceInfo info = SaveState.GetResInfoFromId(BuildQueue.queuedBuildings[index].resID);
             return sSinceLastBuild > /*0.25*/ 0 &&
                    Player.instance.inventory.HasResources(info, 1);
+            // ToDo: Re-enabled build delay if same ID bug is observed.
         }
 
-        private void buildBuilding(QueuedBuilding building) {
+        private void BuildBuilding(QueuedBuilding building) {
             bool debugFunction = false;
             MachineTypeEnum type = (MachineTypeEnum)building.type;
             GridInfo gridInfo = building.gridInfo;
@@ -385,7 +342,6 @@ namespace Blueprints
                 Debug.Log($"recipe: {building.recipe}");
                 Debug.Log($"gridInfo.minPos: {gridInfo.minPos}");
                 Debug.Log($"buildBackwards: {building.conveyorBuildBackwards}");
-                Debug.Log($"chainData: {JsonConvert.SerializeObject(chainData)}");
             }
 
             switch (type) {
