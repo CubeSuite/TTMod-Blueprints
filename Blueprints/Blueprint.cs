@@ -23,7 +23,7 @@ namespace Blueprints
         public int id = -1;
         public int parentId;
         public string name;
-        public MyVector3 size;
+        public string size;
         //public MyVector3 anchorPoint;
         public int rotation = 0;
         public List<uint> machineIDs = new List<uint>();
@@ -104,33 +104,39 @@ namespace Blueprints
             }
         }
 
-        public void setSize(Vector3 newSize) {
-            size = new MyVector3(newSize) {
-                x = Mathf.RoundToInt(newSize.x),
-                y = Mathf.RoundToInt(newSize.y),
-                z = Mathf.RoundToInt(newSize.z),
+        public MyVector3 GetSize() {
+            string[] parts = size.Split(',');
+            return new MyVector3() {
+                x = float.Parse(parts[0]),
+                y = float.Parse(parts[1]),
+                z = float.Parse(parts[2]),
             };
+        }
+
+        public void setSize(Vector3 newSize) {
+            size = $"{Mathf.RoundToInt(newSize.x)},{Mathf.RoundToInt(newSize.y)},{Mathf.RoundToInt(newSize.z)}";
+
             ninetyDegSize = new MyVector3() {
-                x = Mathf.RoundToInt( size.z),
-                y = Mathf.RoundToInt( size.y),
-                z = Mathf.RoundToInt(-size.x)
+                x = Mathf.RoundToInt( newSize.z),
+                y = Mathf.RoundToInt( newSize.y),
+                z = Mathf.RoundToInt(-newSize.x)
             };
             oneEightyDegSize = new MyVector3() {
-                x = Mathf.RoundToInt(-size.x),
-                y = Mathf.RoundToInt( size.y),
-                z = Mathf.RoundToInt(-size.z)
+                x = Mathf.RoundToInt(-newSize.x),
+                y = Mathf.RoundToInt( newSize.y),
+                z = Mathf.RoundToInt(-newSize.z)
             };
             twoSeventyDegSize = new MyVector3() {
-                x = Mathf.RoundToInt(-size.z),
-                y = Mathf.RoundToInt( size.y),
-                z = Mathf.RoundToInt( size.x)
+                x = Mathf.RoundToInt(-newSize.z),
+                y = Mathf.RoundToInt( newSize.y),
+                z = Mathf.RoundToInt( newSize.x)
             };
         }
 
         public Vector3Int getRotatedSize() {
             switch (rotation) {
                 default:
-                case 0: return size.asUnityVector3Int();
+                case 0: return GetSize().asUnityVector3Int();
                 case 1: return ninetyDegSize.asUnityVector3Int();
                 case 2: return oneEightyDegSize.asUnityVector3Int();
                 case 3: return twoSeventyDegSize.asUnityVector3Int();
@@ -220,11 +226,6 @@ namespace Blueprints
             resId = _resId;
             count = _count;
         }
-    }
-
-    [Serializable]
-    public class MyVector3List {
-        public List<MyVector3> list = new List<MyVector3>();
     }
 
     [Serializable]
