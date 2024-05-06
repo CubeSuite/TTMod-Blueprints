@@ -22,9 +22,10 @@ namespace Blueprints
     {
         public int id = -1;
         public int parentId;
-        public string name;
+        public string name = "New Blueprint";
+        public string icon;
+        public string description;
         public string size;
-        //public MyVector3 anchorPoint;
         public int rotation = 0;
         public List<uint> machineIDs = new List<uint>();
         public List<int> machineIndexes = new List<int>();
@@ -33,7 +34,7 @@ namespace Blueprints
         public List<int> machineRotations = new List<int>();
         public List<int> machineRecipes = new List<int>();
         public List<int> machineVariationIndexes = new List<int>();
-        public List<MyVector3> machineDimensions = new List<MyVector3>();
+        public List<string> machineDimensions = new List<string>();
         public List<int> conveyorShapes = new List<int>();
         public List<bool> conveyorBuildBackwards = new List<bool>();
         public List<int> conveyorHeights = new List<int>();
@@ -41,7 +42,8 @@ namespace Blueprints
         public List<int> conveyorTopYawRots = new List<int>();
         public List<int> chestSizes = new List<int>();
         
-        public List<MyVector3> machineRelativePositions = new List<MyVector3>();
+        //public List<MyVector3> machineRelativePositions = new List<MyVector3>();
+        public List<string> machineRelativePositions = new List<string>();
         private Dictionary<uint, int> newMachineRotations = new Dictionary<uint, int>();
 
         private int numMachines => machineIDs.Count;
@@ -70,7 +72,8 @@ namespace Blueprints
             }
 
             foreach(KeyValuePair<int, int> pair in  machineCounts) {
-                cost.Add(new MachineCost(pair.Key, pair.Value));
+                bool affordable = Player.instance.inventory.HasResources(pair.Key, pair.Value);
+                cost.Add(new MachineCost(pair.Key, pair.Value, affordable));
             }
 
             return cost;
@@ -105,12 +108,7 @@ namespace Blueprints
         }
 
         public MyVector3 GetSize() {
-            string[] parts = size.Split(',');
-            return new MyVector3() {
-                x = float.Parse(parts[0]),
-                y = float.Parse(parts[1]),
-                z = float.Parse(parts[2]),
-            };
+            return new MyVector3(size);
         }
 
         public void setSize(Vector3 newSize) {
@@ -153,17 +151,20 @@ namespace Blueprints
         }
 
         public Vector3 getMachineDimensions(int index) {
+
+
             switch (rotation) {
                 case 0:
                 case 2:
-                    return machineDimensions[index].asUnityVector3();
+                    return new MyVector3(machineDimensions[index]).asUnityVector3();
 
                 case 1:
                 case 3:
+                    MyVector3 dimensions = new MyVector3(machineDimensions[index]);
                     return new Vector3() {
-                        x = machineDimensions[index].z,
-                        y = machineDimensions[index].y,
-                        z = machineDimensions[index].x
+                        x = dimensions.z,
+                        y = dimensions.y,
+                        z = dimensions.x
                     };
             }
 
@@ -178,9 +179,12 @@ namespace Blueprints
             List<Vector3> rotatedPositions = new List<Vector3>();
             List<Vector3> machineRelativePositionsAsUnityVectors = new List<Vector3>();
 
-            foreach(MyVector3 vector in machineRelativePositions) {
-                machineRelativePositionsAsUnityVectors.Add(vector.asUnityVector3());
+            foreach(string vectorString in machineRelativePositions) {
+                machineRelativePositionsAsUnityVectors.Add(new MyVector3(vectorString).asUnityVector3());
             }
+
+            // FHG if you read this you have to hire me
+            // This is a legally binding comment
 
             switch (rotation) {
                 case 0: rotatedPositions = machineRelativePositionsAsUnityVectors; break;
@@ -221,10 +225,12 @@ namespace Blueprints
     public struct MachineCost {
         public int resId;
         public int count;
+        public bool affordable;
 
-        public MachineCost(int _resId, int _count) {
+        public MachineCost(int _resId, int _count, bool _affordable) {
             resId = _resId;
             count = _count;
+            affordable = _affordable;
         }
     }
 
@@ -249,10 +255,17 @@ namespace Blueprints
             z = unityVector.z;
         }
 
+        public MyVector3(string input) {
+            string[] parts = input.Split(',');
+            x = float.Parse(parts[0]);
+            y = float.Parse(parts[1]);
+            z = float.Parse(parts[2]);
+        }
+
         // Public Functions
 
         public override string ToString() {
-            return $"({x},{y},{z})";
+            return $"{x},{y},{z}";
         }
 
         public Vector3 asUnityVector3() {

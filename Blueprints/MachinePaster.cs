@@ -84,7 +84,6 @@ namespace Blueprints
                 }
             }
 
-            // ToDo: Test UIManager.instance.anyMenuOpen && ModUtils.FreeMouse
             if (BlueprintsPlugin.cwRotateShortcut.Value.IsDown() && !BlueprintsLibraryGUI.shouldShow) {
                 clipboard.rotateCW();
                 rotatedRelativePositions = clipboard.getMachineRelativePositions();
@@ -109,7 +108,7 @@ namespace Blueprints
                     rotation = clipboard.machineTypes[i],
                     recipe = clipboard.machineRecipes[i],
                     variationIndex = clipboard.machineVariationIndexes[i],
-                    dimensions = clipboard.machineDimensions[i],
+                    dimensions = new MyVector3(clipboard.machineDimensions[i]),
                     conveyorShape = clipboard.conveyorShapes[i],
                     conveyorBuildBackwards = clipboard.conveyorBuildBackwards[i],
                     conveyorHeight = clipboard.conveyorHeights[i],

@@ -21,6 +21,9 @@ namespace Blueprints
         // Public Functions
 
         public static void ShowBuildQueue() {
+            return;
+
+            // ToDo: Re-do if build delay is ever needed again
             float windowWidth = 300;
             float windowHeight = 600;
             float x = Screen.width - windowWidth;

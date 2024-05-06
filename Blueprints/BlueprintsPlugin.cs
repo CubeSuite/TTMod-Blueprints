@@ -20,7 +20,7 @@ namespace Blueprints
     {
         private const string MyGUID = "com.equinox.Blueprints";
         private const string PluginName = "Blueprints";
-        private const string VersionString = "2.1.1";
+        private const string VersionString = "3.0.0";
 
         private static readonly Harmony Harmony = new Harmony(MyGUID);
         public static ManualLogSource Log = new ManualLogSource(PluginName);
@@ -93,6 +93,8 @@ namespace Blueprints
             if(BookManager.GetBookCount() == 0) {
                 BookManager.AddBook(new BlueprintBook() { name = "All Blueprints" });
             }
+
+            BookManager.currentBookId = 0;
 
             Logger.LogInfo($"PluginName: {PluginName}, VersionString: {VersionString} is loaded.");
             Log = Logger;
@@ -222,7 +224,7 @@ namespace Blueprints
             clipboard.machineResIDs.Add(machine.GetCommonInfo().resId);
             clipboard.machineTypes.Add((int)machine.typeIndex);
             clipboard.machineRotations.Add(machine.GetGridInfo().yawRot);
-            clipboard.machineDimensions.Add(GetDimensions(machine));
+            clipboard.machineDimensions.Add(GetDimensions(machine).ToString());
             clipboard.machineVariationIndexes.Add(machine.GetCommonInfo().variationIndex);
 
             if (debugFunction) {

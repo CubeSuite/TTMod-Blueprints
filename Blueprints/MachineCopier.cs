@@ -88,7 +88,7 @@ namespace Blueprints
 
             if (debugFunction) Debug.Log($"endCopying() size: {size}");
 
-            Blueprint blueprint = new Blueprint() { name = "test" };
+            Blueprint blueprint = new Blueprint();
             blueprint.setSize(size);
             BlueprintsPlugin.clipboard = blueprint;
 
@@ -99,7 +99,7 @@ namespace Blueprints
 
                 if (debugFunction) Debug.Log($"endCopying() relativePosition: {relativePosition}");
 
-                blueprint.machineRelativePositions.Add(new MyVector3(relativePosition));
+                blueprint.machineRelativePositions.Add(new MyVector3(relativePosition).ToString());
             }
         }
 

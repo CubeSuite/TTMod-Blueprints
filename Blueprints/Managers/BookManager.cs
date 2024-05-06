@@ -39,7 +39,7 @@ namespace Blueprints
 
             foreach(SharableSlot slot in book.slots) {
                 if(slot.blueprint != null) {
-                    slot.blueprint.id = 01;
+                    slot.blueprint.id = -1;
                     slot.blueprint.parentId = newBook.id;
                     int id = BlueprintManager.AddBlueprint(slot.blueprint);
                     newBook.AddBlueprint(id);
@@ -95,7 +95,7 @@ namespace Blueprints
                 parent.RemoveBook(book.id);
             }
 
-            foreach(Slot slot in book.slots) {
+            foreach(Slot slot in book.GetSlots()) {
                 if (slot.GetSlotType() == SlotType.Blueprint) BlueprintManager.DeleteBlueprint(slot.blueprintId);
                 else DeleteBook(slot.bookId);
             }

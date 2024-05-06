@@ -109,6 +109,9 @@
     <Compile Include="MachinePaster.cs" />
     <Compile Include="Managers\BlueprintManager.cs" />
     <Compile Include="Managers\BookManager.cs" />
+    <Compile Include="Panels\BlueprintInspector.cs" />
+    <Compile Include="Panels\BookInspector.cs" />
+    <Compile Include="Panels\BookPanel.cs" />
     <Compile Include="Patches\PlayerBuilderPatch.cs" />
     <Compile Include="Patches\PlayerInspectorPatch.cs" />
     <Compile Include="Patches\PlayerInteractionPatch.cs" />
@@ -125,6 +128,35 @@
   <ItemGroup>
     <EmbeddedResource Include="Images\Border200x40.png" />
     <EmbeddedResource Include="Images\BorderHover200x40.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Images\SlotPanel.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Images\Border122x40.png" />
+    <EmbeddedResource Include="Images\BorderHover122x40.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Images\TextField.png" />
+    <EmbeddedResource Include="Images\TextFieldActive.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Images\YellowPixel.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Images\Border135x40.png" />
+    <EmbeddedResource Include="Images\BorderHover135x40.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Images\BigDescriptionPanel.png" />
+    <EmbeddedResource Include="Images\SmallDescriptionPanel.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Images\BigDescriptionPanelHover.png" />
+    <EmbeddedResource Include="Images\SmallDescriptionPanelHover.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Images\CostPanel.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
