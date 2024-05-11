@@ -89,7 +89,7 @@ namespace Blueprints
             if (debugFunction) Debug.Log($"endCopying() size: {size}");
 
             Blueprint blueprint = new Blueprint();
-            blueprint.setSize(size);
+            blueprint.SetSize(size);
             BlueprintsPlugin.clipboard = blueprint;
 
             HashSet<IMachineInstanceRef> machines = GetMachinesToCopy();

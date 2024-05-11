@@ -157,8 +157,8 @@ namespace Blueprints.Panels
             GUI.Label(new Rect(windowX + 898, windowY + 409, 280, 40), "Cost", headerStyle);
             GUI.Box(new Rect(windowX + 898, windowY + 434, 280, 169), "", new GUIStyle() { normal = { background = costPanel } });
 
-            List<MachineCost> missing = blueprint.getCost().Where(cost => !cost.affordable).ToList();
-            List<MachineCost> have = blueprint.getCost().Where(cost => cost.affordable).ToList();
+            List<MachineCost> missing = blueprint.GetCost().Where(cost => !cost.affordable).ToList();
+            List<MachineCost> have = blueprint.GetCost().Where(cost => cost.affordable).ToList();
             float maxHeight = 45 * (missing.Count + have.Count);
             scrollPos = GUI.BeginScrollView(new Rect(windowX + 898, windowY + 434, 280, 169), scrollPos, new Rect(windowX + 898, windowY + 434, 280, maxHeight), false, false);
 

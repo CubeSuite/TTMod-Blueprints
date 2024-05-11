@@ -48,10 +48,13 @@ namespace Blueprints
             if(!DoesBlueprintExist(blueprint)) return;
 
             if(removeFromParent && BookManager.DoesBookExist(blueprint.parentId)) {
+                Debug.Log($"Deleting from parent");
                 BlueprintBook parent = BookManager.TryGetBook(blueprint.parentId);
                 if (parent != null) {
+                    Debug.Log($"Got parent");
                     parent.RemoveBlueprint(blueprint);
                     BookManager.UpdateBook(parent);
+                    Debug.Log($"Removed from parent");
                 }
             }
 

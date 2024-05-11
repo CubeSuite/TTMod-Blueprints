@@ -126,11 +126,16 @@ namespace Blueprints
                     return;
                 }
 
-                int newBlueprintID = BlueprintManager.AddBlueprint(BlueprintsPlugin.clipboard);
-                BlueprintsPlugin.clipboard.id = newBlueprintID;
+                Blueprint blueprint = Blueprint.CreateFromClipboard();
+
+                int newBlueprintID = BlueprintManager.AddBlueprint(blueprint);
+                blueprint.id = newBlueprintID;
                 BlueprintBook book = BookManager.GetCurrentBook();
                 book.AddBlueprint(newBlueprintID);
                 BookManager.UpdateBook(book);
+
+                blueprint.parentId = book.id;
+                BlueprintManager.UpdateBlueprint(blueprint);
             }
 
             if(GUI.Button(new Rect(windowX + 633, windowY + 7, width, 40), "New Book", buttonStyle)) {

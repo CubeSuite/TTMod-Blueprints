@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 using UnityEngine.Events;
 using UnityEngine.Search;
 using static Voxeland5.CustomSerialization;
@@ -42,11 +43,8 @@ namespace Blueprints
         public List<int> conveyorTopYawRots = new List<int>();
         public List<int> chestSizes = new List<int>();
         
-        //public List<MyVector3> machineRelativePositions = new List<MyVector3>();
         public List<string> machineRelativePositions = new List<string>();
         private Dictionary<uint, int> newMachineRotations = new Dictionary<uint, int>();
-
-        private int numMachines => machineIDs.Count;
 
         private MyVector3 ninetyDegSize;
         private MyVector3 oneEightyDegSize;
@@ -58,7 +56,7 @@ namespace Blueprints
             return JsonUtility.ToJson(this, formatted);
         }
 
-        public List<MachineCost> getCost() {
+        public List<MachineCost> GetCost() {
             List<MachineCost> cost = new List<MachineCost>();
             Dictionary<int, int> machineCounts = new Dictionary<int, int>();
 
@@ -79,7 +77,20 @@ namespace Blueprints
             return cost;
         }
 
-        public void rotateCW() {
+        public bool CanAfford(bool notify = false) {
+            List<MachineCost> missing = GetCost().Where(machine => !machine.affordable).ToList();
+            if (missing.Count == 0) return true;
+
+            foreach (MachineCost cost in missing) {
+                ResourceInfo info = SaveState.GetResInfoFromId(cost.resId);
+                int have = Player.instance.inventory.GetResourceCount(cost.resId);
+                BlueprintsPlugin.Notify($"Missing {info.displayName} {have} / {cost.count}");
+            }
+
+            return false;
+        }
+
+        public void RotateCW() {
             ++rotation;
             if (rotation == 4) rotation = 0;
 
@@ -93,7 +104,7 @@ namespace Blueprints
             }
         }
 
-        public void rotateCCW() {
+        public void RotateCCW() {
             --rotation;
             if (rotation == -1) rotation = 3;
 
@@ -111,7 +122,7 @@ namespace Blueprints
             return new MyVector3(size);
         }
 
-        public void setSize(Vector3 newSize) {
+        public void SetSize(Vector3 newSize) {
             size = $"{Mathf.RoundToInt(newSize.x)},{Mathf.RoundToInt(newSize.y)},{Mathf.RoundToInt(newSize.z)}";
 
             ninetyDegSize = new MyVector3() {
@@ -131,7 +142,7 @@ namespace Blueprints
             };
         }
 
-        public Vector3Int getRotatedSize() {
+        public Vector3Int GetRotatedSize() {
             switch (rotation) {
                 default:
                 case 0: return GetSize().asUnityVector3Int();
@@ -141,7 +152,7 @@ namespace Blueprints
             }
         }
 
-        public int getMachineRotation(uint instanceId) {
+        public int GetMachineRotation(uint instanceId) {
             if (newMachineRotations.ContainsKey(instanceId)) {
                 return newMachineRotations[instanceId];
             }
@@ -150,13 +161,13 @@ namespace Blueprints
             }
         }
 
-        public Vector3 getMachineDimensions(int index) {
+        public Vector3 GetMachineDimensions(int index) {
 
 
             switch (rotation) {
                 case 0:
                 case 2:
-                    return new MyVector3(machineDimensions[index]).asUnityVector3();
+                    return new MyVector3(machineDimensions[index]).AsUnityVector3();
 
                 case 1:
                 case 3:
@@ -171,16 +182,16 @@ namespace Blueprints
             return Vector3.zero;
         }
 
-        public void clearMachineRotations() {
+        public void ClearMachineRotations() {
             newMachineRotations.Clear();
         }
 
-        public List<Vector3> getMachineRelativePositions() {
+        public List<Vector3> GetMachineRelativePositions() {
             List<Vector3> rotatedPositions = new List<Vector3>();
             List<Vector3> machineRelativePositionsAsUnityVectors = new List<Vector3>();
 
             foreach(string vectorString in machineRelativePositions) {
-                machineRelativePositionsAsUnityVectors.Add(new MyVector3(vectorString).asUnityVector3());
+                machineRelativePositionsAsUnityVectors.Add(new MyVector3(vectorString).AsUnityVector3());
             }
 
             // FHG if you read this you have to hire me
@@ -218,6 +229,35 @@ namespace Blueprints
             }
 
             return rotatedPositions;
+        }
+
+        public static Blueprint CreateFromClipboard() {
+            Blueprint clone = new Blueprint() {
+                id = -1,
+                parentId = BookManager.currentBookId,
+                name = "New Blueprint",
+                icon = "",
+                description = "",
+                rotation = 0,
+                machineIDs = BlueprintsPlugin.clipboard.machineIDs,
+                machineIndexes = BlueprintsPlugin.clipboard.machineIndexes,
+                machineResIDs = BlueprintsPlugin.clipboard.machineResIDs,
+                machineTypes = BlueprintsPlugin.clipboard.machineTypes,
+                machineRotations = BlueprintsPlugin.clipboard.machineRotations,
+                machineRecipes = BlueprintsPlugin.clipboard.machineRecipes,
+                machineVariationIndexes = BlueprintsPlugin.clipboard.machineVariationIndexes,
+                machineDimensions = BlueprintsPlugin.clipboard.machineDimensions,
+                conveyorShapes = BlueprintsPlugin.clipboard.conveyorShapes,
+                conveyorBuildBackwards = BlueprintsPlugin.clipboard.conveyorBuildBackwards,
+                conveyorHeights = BlueprintsPlugin.clipboard.conveyorHeights,
+                conveyorInputBottoms = BlueprintsPlugin.clipboard.conveyorInputBottoms,
+                conveyorTopYawRots = BlueprintsPlugin.clipboard.conveyorTopYawRots,
+                chestSizes = BlueprintsPlugin.clipboard.chestSizes,
+                machineRelativePositions = BlueprintsPlugin.clipboard.machineRelativePositions
+            };
+
+            clone.SetSize(BlueprintsPlugin.clipboard.GetSize().AsUnityVector3());
+            return clone;
         }
     }
 
@@ -268,7 +308,7 @@ namespace Blueprints
             return $"{x},{y},{z}";
         }
 
-        public Vector3 asUnityVector3() {
+        public Vector3 AsUnityVector3() {
             return new Vector3(x, y, z);
         }
 

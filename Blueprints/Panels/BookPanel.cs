@@ -191,8 +191,14 @@ namespace Blueprints.Panels
             }
 
             if (GUI.Button(new Rect(slotX + 5, slotY + 87, 122, 40), "Use", buttonStyle)) {
+                if (!blueprint.CanAfford()) {
+                    Player.instance.audio.buildError.PlayRandomClip();
+                    return;
+                }
+
+                blueprint.SetSize(blueprint.GetSize().AsUnityVector3());
                 BlueprintsPlugin.clipboard = blueprint;
-                MachinePaster.startPasting();
+                MachinePaster.StartPasting();
                 BlueprintsLibraryGUI.CloseGUI();
             }
         }

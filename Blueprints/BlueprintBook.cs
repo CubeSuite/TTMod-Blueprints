@@ -29,8 +29,12 @@ namespace Blueprints
         }
 
         public void RemoveBlueprint(int blueprintId) {
+            Debug.Log($"Removing blueprint #{blueprintId}");
             for (int i = 0; i < slots.Count; i++) {
+                Debug.Log($"Checking slot '{slots[i]}'");
+                Debug.Log($"Checking id '{slots[i].Split(',')[0]}'");
                 if (slots[i].Split(',')[0] == blueprintId.ToString()) {
+                    Debug.Log("Match found, removing");
                     slots.RemoveAt(i);
                     return;
                 }

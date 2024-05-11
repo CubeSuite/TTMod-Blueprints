@@ -90,6 +90,8 @@ namespace Blueprints
             BlueprintManager.LoadData();
             BookManager.LoadData();
 
+            FixParentIds();
+
             if(BookManager.GetBookCount() == 0) {
                 BookManager.AddBook(new BlueprintBook() { name = "All Blueprints" });
             }
@@ -151,8 +153,7 @@ namespace Blueprints
         // Public Functions
 
         public static void Notify(string message) {
-            Debug.Log(message);
-            UIManager.instance.systemLog.FlashMessage(message);
+            UIManager.instance.systemLog.FlashMessage(new CustomSystemMessage(message));
         }
 
         // Private Functions
@@ -199,7 +200,12 @@ namespace Blueprints
 
             if (pasteShortcut.Value.IsDown() && !BlueprintsLibraryGUI.shouldShow && !MachineCopier.isCopying) {
                 if (!MachinePaster.isPasting) {
-                    MachinePaster.startPasting();
+                    if (clipboard.CanAfford(true)) {
+                        MachinePaster.StartPasting();
+                    }
+                    else {
+                        Player.instance.audio.buildError.PlayRandomClip();
+                    }
                 }
                 else {
                     MachinePaster.endPasting();
@@ -383,5 +389,25 @@ namespace Blueprints
 
             sSinceLastBuild = 0;
         }
+
+        private void FixParentIds() {
+            List<BlueprintBook> books = BookManager.GetAllBooks();
+            foreach (Blueprint blueprint in BlueprintManager.GetAllBlueprints()) {
+                if (blueprint.parentId != 0) continue;
+                if (BookManager.GetRootBook().slots.Contains($"{blueprint.id},-1")) continue;
+
+                foreach (BlueprintBook book in books) {
+                    if (book.slots.Contains($"{blueprint.id},-1")) {
+                        blueprint.parentId = book.id;
+                        BlueprintManager.UpdateBlueprint(blueprint);
+                    }
+                }
+            }
+        }
+    }
+
+    public class CustomSystemMessage : SystemMessageInfo {
+        public CustomSystemMessage(string message) : base(message){}
+        public override MessageType type => MessageType.Tutorial;
     }
 }
