@@ -2,7 +2,6 @@
 using FluffyUnderware.Curvy;
 using FluffyUnderware.Curvy.Generator.Modules;
 using Mirror;
-using Newtonsoft.Json;
 using ProceduralNoiseProject;
 using System;
 using System.Collections.Generic;
@@ -36,16 +35,15 @@ namespace Blueprints
 
         // Public Functions
 
-        public static void startPasting() {
+        public static void StartPasting() {
             bool debugFunction = false;
 
-            BlueprintsPlugin.loadFileToClipboard();
             if (clipboard == null) {
                 BlueprintsPlugin.Notify("Nothing to paste!");
                 return;
             }
 
-            rotatedRelativePositions = clipboard.getMachineRelativePositions();
+            rotatedRelativePositions = clipboard.GetMachineRelativePositions();
             isPasting = true;
             nudgeOffset = Vector3.zero;
             finalAimLocation = AimingHelper.getAimedLocationForPasting();
@@ -65,7 +63,7 @@ namespace Blueprints
             Vector3 currentAim = AimingHelper.getAimedLocationForPasting();
             if (!isPositionLocked) lockedPosition = currentAim;
 
-            Vector3Int blueprintSize = clipboard.getRotatedSize();
+            Vector3Int blueprintSize = clipboard.GetRotatedSize();
             if (blueprintSize.x % 2 == 0) currentAim.x += 0.5f;
             if (blueprintSize.z % 2 == 0) currentAim.z += 0.5f;
 
@@ -75,7 +73,7 @@ namespace Blueprints
             for (int i = 0; i < holograms.Count; i++) {
                 Vector3 newLocation = currentAim + rotatedRelativePositions[i];
 
-                int newYaw = clipboard.machineRotations[i] + clipboard.getMachineRotation(clipboard.machineIDs[i]);
+                int newYaw = clipboard.machineRotations[i] + clipboard.GetMachineRotation(clipboard.machineIDs[i]);
                 newYaw = newYaw % 360;
                 if (newYaw < 0) newYaw += 360;
 
@@ -86,13 +84,13 @@ namespace Blueprints
                 }
             }
 
-            if (BlueprintsPlugin.cwRotateShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen) {
-                clipboard.rotateCW();
-                rotatedRelativePositions = clipboard.getMachineRelativePositions();
+            if (BlueprintsPlugin.cwRotateShortcut.Value.IsDown() && !BlueprintsLibraryGUI.shouldShow) {
+                clipboard.RotateCW();
+                rotatedRelativePositions = clipboard.GetMachineRelativePositions();
             }
-            else if (BlueprintsPlugin.ccwRotateShortcut.Value.IsDown() && !BlueprintsLibrary.isOpen) {
-                clipboard.rotateCCW();
-                rotatedRelativePositions = clipboard.getMachineRelativePositions();
+            else if (BlueprintsPlugin.ccwRotateShortcut.Value.IsDown() && !BlueprintsLibraryGUI.shouldShow) {
+                clipboard.RotateCCW();
+                rotatedRelativePositions = clipboard.GetMachineRelativePositions();
             }
         }
 
@@ -110,7 +108,7 @@ namespace Blueprints
                     rotation = clipboard.machineTypes[i],
                     recipe = clipboard.machineRecipes[i],
                     variationIndex = clipboard.machineVariationIndexes[i],
-                    dimensions = clipboard.machineDimensions[i],
+                    dimensions = new MyVector3(clipboard.machineDimensions[i]),
                     conveyorShape = clipboard.conveyorShapes[i],
                     conveyorBuildBackwards = clipboard.conveyorBuildBackwards[i],
                     conveyorHeight = clipboard.conveyorHeights[i],
@@ -141,14 +139,14 @@ namespace Blueprints
             if (debugFunction) Debug.Log($"getNewGridInfo() nudgeOffset: {nudgeOffset}");
             if (debugFunction) Debug.Log($"getNewGridInfo() aimLocation after nudge: {aimLocation}");
 
-            Vector3Int blueprintSize = clipboard.getRotatedSize();
+            Vector3Int blueprintSize = clipboard.GetRotatedSize();
             if (debugFunction) Debug.Log($"getNewGridInfo() blueprintSize: {blueprintSize}");
 
             if (blueprintSize.x % 2 == 0) aimLocation.x += 0.5f;
             if (blueprintSize.z % 2 == 0) aimLocation.z += 0.5f;
             if (debugFunction) Debug.Log($"getNewGridInfo() aimLocation after size offset: {aimLocation}");
 
-            Vector3 dimensions = clipboard.getMachineDimensions(index);
+            Vector3 dimensions = clipboard.GetMachineDimensions(index);
             Vector3 newMachineCenter = aimLocation + rotatedRelativePositions[index];
             Vector3 newMinPos = new Vector3() {
                 x = newMachineCenter.x - dimensions.x / 2.0f,
@@ -169,7 +167,7 @@ namespace Blueprints
                 Debug.Log($"getNewGridInfo() newMinPosInts: {newMinPosInts}");
             }
 
-            int newYaw = yawRotation + clipboard.getMachineRotation(id);
+            int newYaw = yawRotation + clipboard.GetMachineRotation(id);
             if (newYaw >= 360) newYaw -= 360;
             else if (newYaw < 0) newYaw += 360;
             newGridInfo.SetYawRotation(newYaw);
@@ -182,7 +180,7 @@ namespace Blueprints
         public static void postPaste() {
             isPositionLocked = false;
             clipboard.rotation = 0;
-            clipboard.clearMachineRotations();
+            clipboard.ClearMachineRotations();
         }
 
         public static void hideHolograms() {
@@ -203,7 +201,7 @@ namespace Blueprints
 
             if (debugFunction) Debug.Log($"renderHolograms() aimLocation: {aimLocation}");
 
-            Vector3Int blueprintSize = clipboard.getRotatedSize();
+            Vector3Int blueprintSize = clipboard.GetRotatedSize();
             if (blueprintSize.x % 2 == 0) aimLocation.x += 0.5f;
             if (blueprintSize.z % 2 == 0) aimLocation.z += 0.5f;
 
