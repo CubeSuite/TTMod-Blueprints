@@ -142,6 +142,8 @@ namespace Blueprints
         }
 
         private void OnGUI() {
+            ControlsGUI.DrawControlsGUI();
+
             if (BlueprintsLibraryGUI.shouldShow) {
                 BlueprintsLibraryGUI.DrawGUI();
             }

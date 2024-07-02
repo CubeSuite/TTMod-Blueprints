@@ -56,14 +56,34 @@ namespace Blueprints
             Vector3 currentAim = Player.instance.builder.CurrentAimTarget;
             if (shouldLog) Debug.Log($"getAimedLocationForPasting() - currentAim: {currentAim}");
 
-            if (currentAim.x >= 0) currentAim.x += 0.5f - (currentAim.x % Mathf.Floor(currentAim.x));
-            else currentAim.x += (Mathf.Abs(currentAim.x) % Mathf.Floor(Mathf.Abs(currentAim.x))) - 0.5f;
+            float flooredX = Mathf.Floor(currentAim.x);
+            if(flooredX == -1) {
+                currentAim.x = -0.5f;
+            }
+            else if (flooredX == 0) {
+                currentAim.x = 0.5f;
+            }
+            else {
+                if (currentAim.x >= 0) currentAim.x += 0.5f - (currentAim.x % flooredX);
+                else currentAim.x += (Mathf.Abs(currentAim.x) % Mathf.Floor(Mathf.Abs(currentAim.x))) - 0.5f;
+            }
+
             if (shouldLog) Debug.Log($"getAimedLocationForPasting() - currentAim After X Adjust: {currentAim}");
 
             currentAim.y = Mathf.Floor(currentAim.y);
             
-            if (currentAim.z >= 0) currentAim.z += 0.5f - (currentAim.z % Mathf.Floor(currentAim.z));
-            else currentAim.z += (Mathf.Abs(currentAim.z) % Mathf.Floor(Mathf.Abs(currentAim.z))) - 0.5f;
+            float flooredZ = Mathf.Floor(currentAim.z);
+            if (flooredZ == -1) {
+                currentAim.z = -0.5f;
+            }
+            else if (flooredZ == 0) {
+                currentAim.z = 0.5f;
+            }
+            else {
+                if (currentAim.z >= 0) currentAim.z += 0.5f - (currentAim.z % Mathf.Floor(currentAim.z));
+                else currentAim.z += (Mathf.Abs(currentAim.z) % Mathf.Floor(Mathf.Abs(currentAim.z))) - 0.5f;
+            }
+
             if (shouldLog) Debug.Log($"getAimedLocationForPasting() - currentAim After Z Adjust: {currentAim}");
 
             return currentAim;
