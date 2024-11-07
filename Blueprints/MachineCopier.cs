@@ -1,4 +1,5 @@
-﻿using FIMSpace.GroundFitter;
+﻿using EquinoxsModUtils;
+using FIMSpace.GroundFitter;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -92,14 +93,28 @@ namespace Blueprints
             blueprint.SetSize(size);
             BlueprintsPlugin.clipboard = blueprint;
 
+            bool unsupportedMachinesDetected = false;
             HashSet<IMachineInstanceRef> machines = GetMachinesToCopy();
             foreach (IMachineInstanceRef machine in machines) {
+                if (!EMUBuilder.SupportedMachineTypes.Contains(machine.typeIndex)) {
+                    unsupportedMachinesDetected = true;
+                    continue;
+                }
+
                 BlueprintsPlugin.machinesToCopy.Add(machine);
                 Vector3 relativePosition = machine.GetGridInfo().BottomCenter - copyRegionAnchor;
 
                 if (debugFunction) Debug.Log($"endCopying() relativePosition: {relativePosition}");
 
                 blueprint.machineRelativePositions.Add(new MyVector3(relativePosition).ToString());
+            }
+
+            if (unsupportedMachinesDetected) {
+                BlueprintsPlugin.Notify("Unsupported machines were not copied");
+
+                if(BlueprintsPlugin.machinesToCopy.Count == 0) {
+                    BlueprintsPlugin.clipboard = null;
+                }
             }
         }
 
@@ -142,36 +157,36 @@ namespace Blueprints
             bool shrink = false;
 
             // Grow
-            if (BlueprintsPlugin.nudgeLeftShortcut.Value.IsDown()) expansionDirection = AimingHelper.clampToAxis(left);
-            else if (BlueprintsPlugin.nudgeRightShortcut.Value.IsDown()) expansionDirection = AimingHelper.clampToAxis(right);
-            else if (BlueprintsPlugin.nudgeForwardShortcut.Value.IsDown()) expansionDirection = AimingHelper.clampToAxis(forward.normalized);
-            else if(BlueprintsPlugin.nudgeBackwardShortcut.Value.IsDown()) expansionDirection = AimingHelper.clampToAxis(backward.normalized);
+            if (BlueprintsPlugin.nudgeLeftShortcut.Value.IsDown()) expansionDirection = AimingHelper.ClampToAxis(left);
+            else if (BlueprintsPlugin.nudgeRightShortcut.Value.IsDown()) expansionDirection = AimingHelper.ClampToAxis(right);
+            else if (BlueprintsPlugin.nudgeForwardShortcut.Value.IsDown()) expansionDirection = AimingHelper.ClampToAxis(forward.normalized);
+            else if(BlueprintsPlugin.nudgeBackwardShortcut.Value.IsDown()) expansionDirection = AimingHelper.ClampToAxis(backward.normalized);
             else if (BlueprintsPlugin.nudgeUpShortcut.Value.IsDown()) expansionDirection = Vector3.up;
             else if (BlueprintsPlugin.nudgeDownShortcut.Value.IsDown()) expansionDirection = Vector3.down;
 
             // Shrink
             else if (BlueprintsPlugin.shrinkLeftShortcut.Value.IsDown()) {
-                expansionDirection = AimingHelper.clampToAxis(left);
+                expansionDirection = AimingHelper.ClampToAxis(left);
                 shrink = true;
             }
             else if (BlueprintsPlugin.shrinkRightShortcut.Value.IsDown()) {
-                expansionDirection = AimingHelper.clampToAxis(right);
+                expansionDirection = AimingHelper.ClampToAxis(right);
                 shrink = true;
             }
             else if (BlueprintsPlugin.shrinkForwardShortcut.Value.IsDown()) {
-                expansionDirection = AimingHelper.clampToAxis(forward);
+                expansionDirection = AimingHelper.ClampToAxis(forward);
                 shrink = true;
             }
             else if (BlueprintsPlugin.shrinkBackwardShortcut.Value.IsDown()) {
-                expansionDirection = AimingHelper.clampToAxis(backward);
+                expansionDirection = AimingHelper.ClampToAxis(backward);
                 shrink = true;
             }
             else if (BlueprintsPlugin.shrinkUpShortcut.Value.IsDown()) {
-                expansionDirection = AimingHelper.clampToAxis(Vector3.up);
+                expansionDirection = AimingHelper.ClampToAxis(Vector3.up);
                 shrink = true;
             }
             else if (BlueprintsPlugin.shrinkDownShortcut.Value.IsDown()) {
-                expansionDirection = AimingHelper.clampToAxis(Vector3.down);
+                expansionDirection = AimingHelper.ClampToAxis(Vector3.down);
                 shrink = true;
             }
 

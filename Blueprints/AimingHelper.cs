@@ -110,7 +110,7 @@ namespace Blueprints
             return pos;
         }
 
-        public static Vector3 clampToAxis(Vector3 vector) {
+        public static Vector3 ClampToAxis(Vector3 vector) {
             vector.x = Mathf.RoundToInt(vector.x);
             vector.y = Mathf.RoundToInt(vector.y);
             vector.z = Mathf.RoundToInt(vector.z);

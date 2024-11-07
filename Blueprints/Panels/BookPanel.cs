@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
-using static Voxeland5.PosTab;
 
 namespace Blueprints.Panels
 {
@@ -111,9 +110,9 @@ namespace Blueprints.Panels
 
             GUI.Label(new Rect(slotX + 10, slotY + 5, 112, 40), book.name, labelStyle);
 
-            if (ResourceNames.SafeResources.Contains(book.icon)) {
+            if (EMU.Names.Resources.SafeResources.Contains(book.icon)) {
                 GUI.Box(new Rect(slotX + 36, slotY + 20, 60, 60), "", new GUIStyle() {
-                    normal = { background = ModUtils.GetImageForResource(book.icon) }
+                    normal = { background = EMU.Images.GetImageForResource(book.icon) }
                 });
             }
 
@@ -184,9 +183,9 @@ namespace Blueprints.Panels
 
             GUI.Label(new Rect(slotX + 10, slotY + 5, 112, 40), blueprint.name, labelStyle);
 
-            if (ResourceNames.SafeResources.Contains(blueprint.icon)) {
+            if (EMU.Names.Resources.SafeResources.Contains(blueprint.icon)) {
                 GUI.Box(new Rect(slotX + 36, slotY + 20, 60, 60), "", new GUIStyle() {
-                    normal = { background = ModUtils.GetImageForResource(blueprint.icon) }
+                    normal = { background = EMU.Images.GetImageForResource(blueprint.icon) }
                 });
             }
 

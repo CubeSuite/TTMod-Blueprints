@@ -171,7 +171,7 @@ namespace Blueprints.Panels
 
         private static void DrawCostItem(MachineCost cost, ref float currentY) {
             ResourceInfo info = SaveState.GetResInfoFromId(cost.resId);
-            GUI.Box(new Rect(windowX + 903, currentY, 40, 40), ModUtils.GetImageForResource(info.displayName), iconStyle);
+            GUI.Box(new Rect(windowX + 903, currentY, 40, 40), EMU.Images.GetImageForResource(info.displayName), iconStyle);
             GUI.Label(new Rect(windowX + 948, currentY, 215, 40), info.displayName, cost.affordable ? haveNameStyle : missingNameStyle);
 
             string haveTotalText = $"{Player.instance.inventory.GetResourceCount(cost.resId)} / {cost.count}";

@@ -2,6 +2,7 @@
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using Blueprints.Patches;
+using EquinoxsDebuggingTools;
 using EquinoxsModUtils;
 using HarmonyLib;
 using System;
@@ -20,7 +21,7 @@ namespace Blueprints
     {
         private const string MyGUID = "com.equinox.Blueprints";
         private const string PluginName = "Blueprints";
-        private const string VersionString = "3.0.1";
+        private const string VersionString = "5.0.0";
 
         private static readonly Harmony Harmony = new Harmony(MyGUID);
         public static ManualLogSource Log = new ManualLogSource(PluginName);
@@ -106,7 +107,7 @@ namespace Blueprints
             HandleInput();
 
             if (MachineCopier.isCopying) MachineCopier.UpdateEndPosition();
-            if (MachinePaster.isPasting) MachinePaster.updateHolograms();
+            if (MachinePaster.isPasting) MachinePaster.UpdateHolograms();
         }
 
         float sSinceLastBuild = 0;
@@ -122,15 +123,23 @@ namespace Blueprints
 
             sSinceLastBuild += Time.deltaTime;
             for(int i = 0; i < BuildQueue.queuedBuildings.Count; i++) {
+                EDT.PacedLog("Fixed Update", $"Processing build index {i}");
                 if (ShouldBuild(i)) {
+                    EDT.PacedLog("Fixed Update", $"Build index {i} should be built");
                     BuildQueue.HideHologram(i);
+                    EDT.PacedLog("Fixed Update", $"Hid hologram");
 
                     List<Vector3Int> invalidCoords = new List<Vector3Int>();
+                    EDT.PacedLog("Fixed Update", $"Checking buildable");
                     if (GridManager.instance.CheckBuildableAt(BuildQueue.queuedBuildings[i].gridInfo, out invalidCoords)) {
+                        EDT.PacedLog("Fixed Update", $"Is buildable, building");
                         BuildBuilding(BuildQueue.queuedBuildings[i]);
+                        EDT.PacedLog("Fixed Update", $"Built");
                     }
                     
+                    EDT.PacedLog("Fixed Update", $"Removing building index {i} from queue");
                     BuildQueue.queuedBuildings.RemoveAt(i);
+                    EDT.PacedLog("Fixed Update", $"Removed building index {i} from queue");
                     sSinceLastBuild = 0;
                     break;
                 }
@@ -210,7 +219,7 @@ namespace Blueprints
                     }
                 }
                 else {
-                    MachinePaster.endPasting();
+                    MachinePaster.EndPasting();
                 }
             }
 
@@ -220,7 +229,7 @@ namespace Blueprints
 
             if (blueprintsShortcut.Value.IsDown()) {
                 BlueprintsLibraryGUI.shouldShow = !BlueprintsLibraryGUI.shouldShow;
-                ModUtils.FreeCursor(BlueprintsLibraryGUI.shouldShow);
+                EMU.FreeCursor(BlueprintsLibraryGUI.shouldShow);
             }
         }
 
@@ -339,7 +348,7 @@ namespace Blueprints
                 height = building.conveyorHeight,
                 shape = (ConveyorInstance.BeltShape)building.conveyorShape,
                 rotation = gridInfo.yawRot,
-                start = gridInfo.minPos,
+                start = new GridPos(gridInfo.minPos, GameState.instance.GetStrata()),
                 inputBottom = building.conveyorInputBottom,
                 topYawRot = building.conveyorTopYawRot
             };
@@ -360,32 +369,33 @@ namespace Blueprints
                 case MachineTypeEnum.BlastSmelter:
                 case MachineTypeEnum.Chest:
                 case MachineTypeEnum.Drill:
-                case MachineTypeEnum.Floor:
                 case MachineTypeEnum.LightSticks:
                 case MachineTypeEnum.Planter:
                 case MachineTypeEnum.ResearchCore:
                 case MachineTypeEnum.Smelter:
-                case MachineTypeEnum.Stairs:
                 case MachineTypeEnum.Thresher:
                 case MachineTypeEnum.TransitDepot:
-                case MachineTypeEnum.TransitPole:
                 case MachineTypeEnum.VoltageStepper:
-                    ModUtils.BuildMachine(building.resID, gridInfo, false);
+                case MachineTypeEnum.Crusher:
+                case MachineTypeEnum.SandPump:
+                case MachineTypeEnum.Nexus:
+                    EMUBuilder.BuildMachine(building.resID, gridInfo, false);
                     break;
 
                 case MachineTypeEnum.Structure:
-                    ModUtils.BuildMachine(building.resID, gridInfo, false, building.variationIndex);
+                case MachineTypeEnum.TransitPole:
+                    EMUBuilder.BuildMachine(building.resID, gridInfo, false, building.variationIndex);
                     break;
 
                 case MachineTypeEnum.Assembler:
                 case MachineTypeEnum.Inserter:
-                    ModUtils.BuildMachine(building.resID, gridInfo, false, -1, building.recipe); break;
+                    EMUBuilder.BuildMachine(building.resID, gridInfo, false, -1, building.recipe); break;
 
                 case MachineTypeEnum.Conveyor:
-                    ModUtils.BuildMachine(building.resID, gridInfo, false, -1, -1, chainData, building.conveyorBuildBackwards); break;
+                    EMUBuilder.BuildMachine(building.resID, gridInfo, false, -1, -1, chainData, building.conveyorBuildBackwards); break;
 
                 default:
-                    Debug.Log($"Unsupported Machine type");
+                    Debug.Log($"Unsupported machine type '{SaveState.GetResInfoFromId(building.resID).displayName}'");
                     break;
             }
 
