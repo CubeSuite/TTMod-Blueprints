@@ -1,4 +1,5 @@
-﻿using EquinoxsModUtils;
+﻿using EquinoxsDebuggingTools;
+using EquinoxsModUtils;
 using FIMSpace.GroundFitter;
 using System;
 using System.Collections.Generic;
@@ -72,8 +73,6 @@ namespace Blueprints
         }
 
         public static void EndCopying() {
-            bool debugFunction = false;
-            
             Vector3? endPosResult = AimingHelper.getLookedAtMachinePos();
             if (endPosResult == null) {
                 BlueprintsPlugin.Notify("Aim at a buildable to end.");
@@ -83,11 +82,11 @@ namespace Blueprints
             copyRegionEnd = (Vector3)endPosResult;
             CancelCopying(false);
 
-            if (debugFunction) Debug.Log($"endCopying() copyRegionEnd: {copyRegionEnd}");
+            EDT.Log("EndCopying", $"copyRegionEnd: {copyRegionEnd}");
 
             Vector3 size = GetFinalCopyRegionValues();
 
-            if (debugFunction) Debug.Log($"endCopying() size: {size}");
+            EDT.Log("EndCopying", $"size: {size}");
 
             Blueprint blueprint = new Blueprint();
             blueprint.SetSize(size);
@@ -104,7 +103,7 @@ namespace Blueprints
                 BlueprintsPlugin.machinesToCopy.Add(machine);
                 Vector3 relativePosition = machine.GetGridInfo().BottomCenter - copyRegionAnchor;
 
-                if (debugFunction) Debug.Log($"endCopying() relativePosition: {relativePosition}");
+                EDT.Log("EndCopying", $"relativePosition: {relativePosition}");
 
                 blueprint.machineRelativePositions.Add(new MyVector3(relativePosition).ToString());
             }

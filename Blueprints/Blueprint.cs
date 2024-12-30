@@ -303,6 +303,10 @@ namespace Blueprints
         // Public Functions
 
         public override string ToString() {
+            string xString = x.ToString().Replace(',', '.');
+            string yString = y.ToString().Replace(',', '.');
+            string zString = z.ToString().Replace(',', '.');
+
             return $"{x},{y},{z}";
         }
 

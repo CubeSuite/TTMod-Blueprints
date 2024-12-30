@@ -21,7 +21,7 @@ namespace Blueprints
     {
         private const string MyGUID = "com.equinox.Blueprints";
         private const string PluginName = "Blueprints";
-        private const string VersionString = "5.0.0";
+        private const string VersionString = "5.0.1";
 
         private static readonly Harmony Harmony = new Harmony(MyGUID);
         public static ManualLogSource Log = new ManualLogSource(PluginName);
@@ -234,8 +234,6 @@ namespace Blueprints
         }
 
         private void AddMachineToBlueprint(IMachineInstanceRef machine) {
-            bool debugFunction = false;
-
             clipboard.machineIDs.Add(machine.instanceId);
             clipboard.machineIndexes.Add(machine.index);
             clipboard.machineResIDs.Add(machine.GetCommonInfo().resId);
@@ -244,18 +242,16 @@ namespace Blueprints
             clipboard.machineDimensions.Add(GetDimensions(machine).ToString());
             clipboard.machineVariationIndexes.Add(machine.GetCommonInfo().variationIndex);
 
-            if (debugFunction) {
-                string resName = SaveState.GetResInfoFromId(machine.GetCommonInfo().resId).displayName;
+            string resName = SaveState.GetResInfoFromId(machine.GetCommonInfo().resId).displayName;
 
-                Debug.Log($"addMachineToBlueprint() machine.instanceId: {machine.instanceId}");
-                Debug.Log($"addMachineToBlueprint() machine.index: {machine.index}");
-                Debug.Log($"addMachineToBlueprint() machine.resID: {machine.GetCommonInfo().resId}");
-                Debug.Log($"addMachineToBlueprint() machine.resName: {resName}");
-                Debug.Log($"addMachineToBlueprint() machine.typIndex: {machine.typeIndex}");
-                Debug.Log($"addMachineToBlueprint() machine.yawRot: {machine.GetGridInfo().yawRot}");
-                Debug.Log($"addMachineToBlueprint() machine.dims: {machine.gridInfo.dims}");
-                Debug.Log($"addMachineToBlueprint() machine.variationIndex: {machine.GetCommonInfo().variationIndex}");
-            }
+            EDT.Log("AddMachineToBlueprint", $"machine.instanceId: {machine.instanceId}");
+            EDT.Log("AddMachineToBlueprint", $"machine.index: {machine.index}");
+            EDT.Log("AddMachineToBlueprint", $"machine.resID: {machine.GetCommonInfo().resId}");
+            EDT.Log("AddMachineToBlueprint", $"machine.resName: {resName}");
+            EDT.Log("AddMachineToBlueprint", $"machine.typIndex: {machine.typeIndex}");
+            EDT.Log("AddMachineToBlueprint", $"machine.yawRot: {machine.GetGridInfo().yawRot}");
+            EDT.Log("AddMachineToBlueprint", $"machine.dims: {machine.gridInfo.dims}");
+            EDT.Log("AddMachineToBlueprint", $"machine.variationIndex: {machine.GetCommonInfo().variationIndex}");
 
             GenericMachineInstanceRef generic = machine.AsGeneric();
 
