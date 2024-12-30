@@ -49,12 +49,12 @@ namespace Blueprints
             finalAimLocation = AimingHelper.getAimedLocationForPasting();
             lockedPosition = finalAimLocation;
 
-            renderHolograms();
+            RenderHolograms();
         }
 
-        public static void updateHolograms() {
+        public static void UpdateHolograms() {
             if (BlueprintsPlugin.cancelShortcut.Value.IsDown()) {
-                hideHolograms();
+                HideHolograms();
                 isPasting = false;
                 isPositionLocked = false;
                 BlueprintsPlugin.Notify("Canceled pasting");
@@ -67,7 +67,7 @@ namespace Blueprints
             if (blueprintSize.x % 2 == 0) currentAim.x += 0.5f;
             if (blueprintSize.z % 2 == 0) currentAim.z += 0.5f;
 
-            checkForNudging();
+            CheckForNudging();
             currentAim += nudgeOffset;
 
             for (int i = 0; i < holograms.Count; i++) {
@@ -94,7 +94,7 @@ namespace Blueprints
             }
         }
 
-        public static void endPasting() {
+        public static void EndPasting() {
             isPasting = false;
             finalAimLocation = AimingHelper.getAimedLocationForPasting();
 
@@ -115,15 +115,15 @@ namespace Blueprints
                     conveyorInputBottom = clipboard.conveyorInputBottoms[i],
                     conveyorTopYawRot = clipboard.conveyorTopYawRots[i] + clipboard.rotation * 90,
                     chestSize = clipboard.chestSizes[i],
-                    gridInfo = getNewGridInfo(rotatedRelativePositions, i, clipboard.machineRotations[i], clipboard.machineIDs[i], clipboard.machineVariationIndexes[i])
+                    gridInfo = GetNewGridInfo(rotatedRelativePositions, i, clipboard.machineRotations[i], clipboard.machineIDs[i], clipboard.machineVariationIndexes[i])
                 });
             }
 
             holograms.Clear();
-            postPaste();
+            PostPaste();
         }
 
-        public static GridInfo getNewGridInfo(List<Vector3> rotatedRelativePositions, int index, int yawRotation, uint id, int variationIndex) {
+        public static GridInfo GetNewGridInfo(List<Vector3> rotatedRelativePositions, int index, int yawRotation, uint id, int variationIndex) {
             bool debugFunction = false;
 
             GridInfo newGridInfo = new GridInfo();
@@ -177,13 +177,13 @@ namespace Blueprints
             return newGridInfo;
         }
 
-        public static void postPaste() {
+        public static void PostPaste() {
             isPositionLocked = false;
             clipboard.rotation = 0;
             clipboard.ClearMachineRotations();
         }
 
-        public static void hideHolograms() {
+        public static void HideHolograms() {
             foreach (StreamedHologramData hologram in holograms) {
                 hologram.AbandonHologramPreview();
             }
@@ -193,7 +193,7 @@ namespace Blueprints
 
         // Private Functions
 
-        private static void renderHolograms() {
+        private static void RenderHolograms() {
             bool debugFunction = false;
 
             Vector3 aimLocation = AimingHelper.getAimedLocationForPasting();
@@ -268,7 +268,7 @@ namespace Blueprints
             }
         }
 
-        private static void checkForNudging() {
+        private static void CheckForNudging() {
             Vector3 camFacing = Player.instance.cam.transform.forward;
             Vector3 nudgeDirection = Vector3.zero;
 
@@ -279,10 +279,10 @@ namespace Blueprints
             forward.y = 0;
             backward.y = 0;
 
-            if (BlueprintsPlugin.nudgeLeftShortcut.Value.IsDown()) nudgeDirection = AimingHelper.clampToAxis(left);
-            else if (BlueprintsPlugin.nudgeRightShortcut.Value.IsDown()) nudgeDirection = AimingHelper.clampToAxis(right);
-            else if (BlueprintsPlugin.nudgeForwardShortcut.Value.IsDown()) nudgeDirection = AimingHelper.clampToAxis(forward);
-            else if (BlueprintsPlugin.nudgeBackwardShortcut.Value.IsDown()) nudgeDirection = AimingHelper.clampToAxis(backward);
+            if (BlueprintsPlugin.nudgeLeftShortcut.Value.IsDown()) nudgeDirection = AimingHelper.ClampToAxis(left);
+            else if (BlueprintsPlugin.nudgeRightShortcut.Value.IsDown()) nudgeDirection = AimingHelper.ClampToAxis(right);
+            else if (BlueprintsPlugin.nudgeForwardShortcut.Value.IsDown()) nudgeDirection = AimingHelper.ClampToAxis(forward);
+            else if (BlueprintsPlugin.nudgeBackwardShortcut.Value.IsDown()) nudgeDirection = AimingHelper.ClampToAxis(backward);
             else if (BlueprintsPlugin.nudgeUpShortcut.Value.IsDown()) nudgeDirection = Vector3.up;
             else if (BlueprintsPlugin.nudgeDownShortcut.Value.IsDown()) nudgeDirection = Vector3.down;
 

@@ -9,12 +9,10 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
-using TMPro;
 using UnityEngine;
 using UnityEngine.Assertions.Must;
 using UnityEngine.Events;
 using UnityEngine.Search;
-using static Voxeland5.CustomSerialization;
 
 namespace Blueprints
 {
@@ -305,6 +303,10 @@ namespace Blueprints
         // Public Functions
 
         public override string ToString() {
+            string xString = x.ToString().Replace(',', '.');
+            string yString = y.ToString().Replace(',', '.');
+            string zString = z.ToString().Replace(',', '.');
+
             return $"{x},{y},{z}";
         }
 

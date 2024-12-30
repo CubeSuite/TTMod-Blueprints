@@ -61,31 +61,31 @@ namespace Blueprints
 
         public static void CloseGUI() {
             shouldShow = false;
-            ModUtils.FreeCursor(false);
+            EMU.FreeCursor(false);
             inspectedBlueprintId = -1;
             inspectedBookId = -1;
         }
 
         public static void LoadTextures() {
-            shaderTile = ModUtils.LoadTexture2DFromFile("Blueprints.Images.ShaderTile.png");
-            background = ModUtils.LoadTexture2DFromFile("Blueprints.Images.LibraryBackground.png");
-            yellowPixel = ModUtils.LoadTexture2DFromFile("Blueprints.Images.YellowPixel.png");
+            shaderTile = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.ShaderTile.png");
+            background = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.LibraryBackground.png");
+            yellowPixel = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.YellowPixel.png");
 
-            BookPanel.border122 = ModUtils.LoadTexture2DFromFile("Blueprints.Images.Border122x40.png");
-            BookPanel.border122Hover = ModUtils.LoadTexture2DFromFile("Blueprints.Images.BorderHover122x40.png");
-            border135 = ModUtils.LoadTexture2DFromFile("Blueprints.Images.Border135x40.png");
-            border135Hover = ModUtils.LoadTexture2DFromFile("Blueprints.Images.BorderHover135x40.png");
+            BookPanel.border122 = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.Border122x40.png");
+            BookPanel.border122Hover = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.BorderHover122x40.png");
+            border135 = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.Border135x40.png");
+            border135Hover = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.BorderHover135x40.png");
 
-            textField = ModUtils.LoadTexture2DFromFile("Blueprints.Images.TextField.png");
-            textFieldActive = ModUtils.LoadTexture2DFromFile("Blueprints.Images.TextFieldActive.png");
+            textField = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.TextField.png");
+            textFieldActive = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.TextFieldActive.png");
 
-            BookInspector.bigDescriptionPanel = ModUtils.LoadTexture2DFromFile("Blueprints.Images.BigDescriptionPanel.png");
-            BookInspector.bigDescriptionPanelHover = ModUtils.LoadTexture2DFromFile("Blueprints.Images.BigDescriptionPanelHover.png");
-            BlueprintInspector.smallDescriptionPanel = ModUtils.LoadTexture2DFromFile("Blueprints.Images.SmallDescriptionPanel.png");
-            BlueprintInspector.smallDescriptionPanelHover = ModUtils.LoadTexture2DFromFile("Blueprints.Images.SmallDescriptionPanelHover.png");
+            BookInspector.bigDescriptionPanel = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.BigDescriptionPanel.png");
+            BookInspector.bigDescriptionPanelHover = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.BigDescriptionPanelHover.png");
+            BlueprintInspector.smallDescriptionPanel = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.SmallDescriptionPanel.png");
+            BlueprintInspector.smallDescriptionPanelHover = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.SmallDescriptionPanelHover.png");
 
-            BookPanel.slotPanel = ModUtils.LoadTexture2DFromFile("Blueprints.Images.SlotPanel.png");
-            BlueprintInspector.costPanel = ModUtils.LoadTexture2DFromFile("Blueprints.Images.CostPanel.png");
+            BookPanel.slotPanel = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.SlotPanel.png");
+            BlueprintInspector.costPanel = EMU.Images.LoadTexture2DFromFile("Blueprints.Images.CostPanel.png");
         }
 
         // Private Functions
